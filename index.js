@@ -166,6 +166,13 @@ function showBoardPopup(settings) {
 
     document.body.appendChild(overlay);
 
+    // Force scroll to popup on mobile
+    setTimeout(() => {
+        overlay.scrollTop = 0;
+        window.scrollTo(0, 0);
+        popup.scrollIntoView({ behavior: 'instant', block: 'center' });
+    }, 50);
+
     const escHandler = (e) => {
         if (e.key === 'Escape') {
             overlay.remove();
