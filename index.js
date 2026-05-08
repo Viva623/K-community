@@ -114,12 +114,21 @@ function parseBoard(text) {
 }
 
 // ===== Generate stable meta for a post =====
-function assignPostMeta(post) {
+function assignPostMeta(post, postIndex, totalPosts) {
     if (!post._meta) {
+        // Use the timestamp when the post was created
+        const baseTime = post._timestamp || Date.now();
+        // Spread posts across a time range (each post 1~5 min apart, newest first)
+        const offsetMinutes = (totalPosts - 1 - postIndex) * (Math.floor(Math.random() * 4) + 1);
+        const postDate = new Date(baseTime - offsetMinutes * 60000);
+
+        const hours = String(postDate.getHours()).padStart(2, '0');
+        const minutes = String(postDate.getMinutes()).padStart(2, '0');
+
         post._meta = {
             views: Math.floor(Math.random() * 300) + 1,
-            minute: String(Math.floor(Math.random() * 60)).padStart(2, '0'),
-            id: Date.now() + Math.floor(Math.random() * 10000),
+            timeStr: `${hours}:${minutes}`,
+            id: baseTime + Math.floor(Math.random() * 10000),
         };
     }
     return post._meta;
@@ -178,7 +187,7 @@ function showBoardPopup(settings) {
 
         let listHtml = '';
         pagePosts.forEach((post, idx) => {
-            const meta = assignPostMeta(post);
+            const meta = assignPostMeta(post, startIdx + idx, allPosts.length);
             const globalIdx = allPosts.length - 1 - (startIdx + idx);
             listHtml += `
                 <div class="post-item" data-post-index="${globalIdx}">
@@ -254,7 +263,7 @@ function showBoardPopup(settings) {
     function showDetailView(idx) {
         const post = allPosts[idx];
         if (!post) return;
-        const meta = assignPostMeta(post);
+        const meta = assignPostMeta(post, idx, allPosts.length);
 
         let commentsHtml = '';
         post.comments.forEach((comment, cIdx) => {
@@ -265,7 +274,8 @@ function showBoardPopup(settings) {
                         <div class="comment-meta">
                             <strong>여시</strong>
                             <span class="new-icon">N</span>
-                            <span>00:${randomMinute()}</span>
+                            <span>${meta.timeStr}</span>
+                            
                         </div>
                         <p class="comment-text">
                             ${isFirst ? '<span class="first-comment-badge">첫댓글</span> ' : ''}${comment.text}
@@ -359,13 +369,15 @@ function processMessageElement(messageElement) {
     const mesId = messageElement.getAttribute('mesid');
 
     // Add posts to accumulated list (avoid duplicates by mesId)
-    if (!allPosts.some(p => p._mesId === mesId)) {
-        for (const post of parsed.posts) {
+        if (!allPosts.some(p => p._mesId === mesId)) {
+        const now = Date.now();
+        for (let i = 0; i < parsed.posts.length; i++) {
+            const post = parsed.posts[i];
             post._mesId = mesId;
+            // Each post gets a slightly different timestamp (1~5 min apart)
+            post._timestamp = now - (parsed.posts.length - 1 - i) * (Math.floor(Math.random() * 4) + 1) * 60000;
             allPosts.push(post);
         }
-        console.log(`[Community Board] ${parsed.posts.length} posts added from message #${mesId} (total: ${allPosts.length})`);
-    }
 
     // Remove the raw board text from displayed message
     const startIdx = rawHtml.indexOf(BOARD_START);
