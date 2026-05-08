@@ -171,22 +171,6 @@ function showBoardPopup(settings) {
     });
 
     document.body.appendChild(overlay);
-
-
-    // 모바일 디버그 2
-    setTimeout(() => {
-        const oRect = overlay.getBoundingClientRect();
-        const pRect = popup.getBoundingClientRect();
-        const cRect = contentArea.getBoundingClientRect();
-        alert(
-        'OVERLAY top:' + Math.round(oRect.top) + ' h:' + Math.round(oRect.height) +
-        '\nPOPUP top:' + Math.round(pRect.top) + ' h:' + Math.round(pRect.height) +
-        '\nCONTENT top:' + Math.round(cRect.top) + ' h:' + Math.round(cRect.height) +
-        '\nwindow:' + window.innerHeight +
-        '\nbody scrollTop:' + document.body.scrollTop +
-        '\ndocument scrollTop:' + document.documentElement.scrollTop
-        );
-    }, 100);
     
     // 스크롤 위치 초기화
     setTimeout(() => {
