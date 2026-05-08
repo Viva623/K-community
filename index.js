@@ -172,6 +172,10 @@ function showBoardPopup(settings) {
 
     document.body.appendChild(overlay);
 
+    // 모바일 디버그
+    const rect = popup.getBoundingClientRect();
+    alert('top:' + Math.round(rect.top) + ' left:' + Math.round(rect.left) + ' width:' + Math.round(rect.width) + ' height:' + Math.round(rect.height) + ' bodyOverflow:' + getComputedStyle(document.body).overflow + ' htmlOverflow:' + getComputedStyle(document.documentElement).overflow);
+
     // 스크롤 위치 초기화
     setTimeout(() => {
         overlay.scrollTop = 0;
