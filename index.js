@@ -197,7 +197,7 @@ function showBoardPopup(settings) {
                             <div class="post-meta">
                                 <span>여시</span>
                                 <span class="dot">·</span>
-                                <span>00:${meta.minute}</span>
+                                <span>${meta.timeStr}</span>
                                 <span class="new-icon">N</span>
                                 <span class="dot">·</span>
                                 <span>조회 ${meta.views}</span>
@@ -315,7 +315,7 @@ function showBoardPopup(settings) {
                         <div class="detail-post-meta">
                             <strong>여시</strong>
                             <span class="dot">·</span>
-                            <span>00:${meta.minute}</span>
+                            <span>${meta.timeStr}</span>
                             <span class="dot">·</span>
                             <span>조회 ${meta.views}</span>
                         </div>
@@ -369,14 +369,21 @@ function processMessageElement(messageElement) {
 
     // Add posts to accumulated list (avoid duplicates by mesId)
     if (!allPosts.some(p => p._mesId === mesId)) {
-        const now = Date.now();
-        for (let i = 0; i < parsed.posts.length; i++) {
-            const post = parsed.posts[i];
-            post._mesId = mesId;
-            // Each post gets a slightly different timestamp (1~5 min apart)
-            post._timestamp = now - (parsed.posts.length - 1 - i) * (Math.floor(Math.random() * 4) + 1) * 60000;
-            allPosts.push(post);
-   }
+    const now = Date.now();
+
+    for (let i = 0; i < parsed.posts.length; i++) {
+        const post = parsed.posts[i];
+        post._mesId = mesId;
+
+        post._timestamp =
+            now -
+            (parsed.posts.length - 1 - i) *
+            (Math.floor(Math.random() * 4) + 1) *
+            60000;
+
+        allPosts.push(post);
+    }
+}
 
     // Remove the raw board text from displayed message
     const startIdx = rawHtml.indexOf(BOARD_START);
@@ -430,7 +437,7 @@ function injectPrompt() {
 
     if (settings.enabled) {
         const prompt = buildBoardPrompt(settings);
-        context.setExtensionPrompt(MODULE_NAME, prompt, 1, 0);
+        context.setExtensionPrompt(MODULE_NAME, prompt);
         console.log('[Community Board] Prompt injected');
     } else {
         context.setExtensionPrompt(MODULE_NAME, '', 1, 0);
