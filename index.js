@@ -166,6 +166,15 @@ function showBoardPopup(settings) {
 
     document.body.appendChild(overlay);
 
+    const vh = window.innerHeight;
+    popup.style.height = Math.floor(vh * 0.85) + 'px';
+    popup.style.minHeight = Math.floor(vh * 0.85) + 'px';
+    const contentEl = popup.querySelector('.cb-popup-content');
+    if (contentEl) {
+        contentEl.style.height = Math.floor(vh * 0.75) + 'px';
+        contentEl.style.minHeight = Math.floor(vh * 0.75) + 'px';
+    }
+    
     // Force scroll to popup on mobile
     setTimeout(() => {
         overlay.scrollTop = 0;
