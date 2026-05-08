@@ -14,21 +14,20 @@ const defaultSettings = Object.freeze({
     readerDescription: 'The readers are South Korean otaku adult women in their 20s and 30s.',
     communityDescription: 'As this is an informal female-dominated online community, features such as South Korean internet slang, sarcasm, abbreviations, profanity, and omission of punctuation may appear.',
     maxComments: 20,
-    promptDepth: 0,
 });
 
 // ===== Settings Management =====
 function getSettings() {
-    const { extensionSettings } = SillyTavern.getContext();
-    if (!extensionSettings[MODULE_NAME]) {
-        extensionSettings[MODULE_NAME] = structuredClone(defaultSettings);
+    const context = SillyTavern.getContext();
+    if (!context.extensionSettings[MODULE_NAME]) {
+        context.extensionSettings[MODULE_NAME] = structuredClone(defaultSettings);
     }
     for (const key of Object.keys(defaultSettings)) {
-        if (!Object.hasOwn(extensionSettings[MODULE_NAME], key)) {
-            extensionSettings[MODULE_NAME][key] = defaultSettings[key];
+        if (!Object.hasOwn(context.extensionSettings[MODULE_NAME], key)) {
+            context.extensionSettings[MODULE_NAME][key] = defaultSettings[key];
         }
     }
-    return extensionSettings[MODULE_NAME];
+    return context.extensionSettings[MODULE_NAME];
 }
 
 // ===== Prompt Builder =====
@@ -62,8 +61,8 @@ function parseBoard(text) {
     const posts = [];
     let match;
 
-    POST_REGEX.lastIndex = 0;
-    while ((match = POST_REGEX.exec(boardText)) !== null) {
+    const regex = /POST\[([^§]+)§([^§]+)§(\d+)§([^\]]*)\]/g;
+    while ((match = regex.exec(boardText)) !== null) {
         const [, title, content, commentCount, commentsRaw] = match;
         const comments = commentsRaw
             .split('§')
@@ -78,19 +77,19 @@ function parseBoard(text) {
         });
     }
 
-    return { posts, rawBoardText: boardText };
+    return posts.length > 0 ? { posts, rawBoardText: boardText } : null;
 }
 
 // ===== HTML Renderer =====
 function renderBoard(posts, settings) {
     const randomViews = () => Math.floor(Math.random() * 300) + 1;
     const randomMinute = () => String(Math.floor(Math.random() * 60)).padStart(2, '0');
+    const uniqueId = Date.now();
 
     let postsHtml = '';
     posts.forEach((post, idx) => {
-        const postId = `cb-post-${Date.now()}-${idx}`;
+        const postId = `cb-post-${uniqueId}-${idx}`;
 
-        // Build comments HTML
         let commentsHtml = '';
         post.comments.forEach((comment, cIdx) => {
             const isFirst = cIdx === 0;
@@ -163,29 +162,34 @@ function renderBoard(posts, settings) {
     </div>`;
 }
 
-// ===== Message Processing =====
-function processMessageForDisplay(messageElement) {
+// ===== Process a single message element =====
+function processMessageElement(messageElement) {
+    // Don't process twice
+    if (messageElement.querySelector('.community-board-wrapper')) return;
+
     const messageText = messageElement.querySelector('.mes_text');
     if (!messageText) return;
 
-    const rawText = messageText.textContent || messageText.innerText;
-    const parsed = parseBoard(rawText);
+    const rawHtml = messageText.innerHTML;
+    if (!rawHtml.includes(BOARD_START)) return;
+
+    // Parse from text content
+    const textContent = messageText.textContent || messageText.innerText || '';
+    const parsed = parseBoard(textContent);
     if (!parsed || parsed.posts.length === 0) return;
 
     const settings = getSettings();
 
-    // Remove raw board text from display
-    const innerHTML = messageText.innerHTML;
-    const startIdx = innerHTML.indexOf(BOARD_START);
-    const endIdx = innerHTML.indexOf(BOARD_END);
-
+    // Remove the raw board text from displayed HTML
+    const startIdx = rawHtml.indexOf(BOARD_START);
+    const endIdx = rawHtml.indexOf(BOARD_END);
     if (startIdx !== -1 && endIdx !== -1) {
-        const before = innerHTML.substring(0, startIdx);
-        const after = innerHTML.substring(endIdx + BOARD_END.length);
+        const before = rawHtml.substring(0, startIdx);
+        const after = rawHtml.substring(endIdx + BOARD_END.length);
         messageText.innerHTML = before + after;
     }
 
-    // Render and append board UI
+    // Render board UI
     const boardHtml = renderBoard(parsed.posts, settings);
     const boardWrapper = document.createElement('div');
     boardWrapper.classList.add('community-board-wrapper');
@@ -193,28 +197,31 @@ function processMessageForDisplay(messageElement) {
     messageText.appendChild(boardWrapper);
 }
 
+// ===== Process all existing messages =====
+function processAllMessages() {
+    document.querySelectorAll('.mes:not([is_user="true"])').forEach(el => {
+        processMessageElement(el);
+    });
+}
+
 // ===== Prompt Injection =====
-async function onGenerationStarted(type) {
+function injectPrompt() {
     const settings = getSettings();
-    if (!settings.enabled) return;
+    const context = SillyTavern.getContext();
 
-    const { setExtensionPrompt } = SillyTavern.getContext();
-    const prompt = buildBoardPrompt(settings);
-    setExtensionPrompt(
-        MODULE_NAME,
-        prompt,
-        1,  // extension_prompt_types.IN_CHAT (after main prompt)
-        settings.promptDepth,
-    );
+    if (settings.enabled) {
+        const prompt = buildBoardPrompt(settings);
+        // setExtensionPrompt(name, prompt, position, depth)
+        // position 1 = IN_CHAT, depth 0 = at the very end
+        context.setExtensionPrompt(MODULE_NAME, prompt, 1, 0);
+        console.log('[Community Board] Prompt injected');
+    } else {
+        context.setExtensionPrompt(MODULE_NAME, '', 1, 0);
+    }
 }
 
-async function onGenerationEnded() {
-    const { setExtensionPrompt } = SillyTavern.getContext();
-    setExtensionPrompt(MODULE_NAME, '', 1, 0);
-}
-
-// ===== Remove Board from Context =====
-function removeBoardFromContext(chat) {
+// ===== Remove Board from AI Context =====
+globalThis.communityBoardInterceptor = function (chat, contextSize, abort, type) {
     for (const message of chat) {
         if (message.mes && message.mes.includes(BOARD_START)) {
             const startIdx = message.mes.indexOf(BOARD_START);
@@ -226,12 +233,11 @@ function removeBoardFromContext(chat) {
             }
         }
     }
-}
+};
 
 // ===== Settings UI =====
-async function loadSettingsUI() {
+function loadSettingsUI() {
     const settings = getSettings();
-    const { renderExtensionTemplateAsync } = SillyTavern.getContext();
 
     const settingsHtml = `
     <div id="community-board-settings">
@@ -271,38 +277,37 @@ async function loadSettingsUI() {
 
     $('#extensions_settings2').append(settingsHtml);
 
-    // Bind events
-    const { saveSettingsDebounced } = SillyTavern.getContext();
+    const saveDebounced = SillyTavern.getContext().saveSettingsDebounced;
 
     $('#cb_enabled').on('change', function () {
         settings.enabled = !!$(this).prop('checked');
         updateToggleButton(settings.enabled);
-        saveSettingsDebounced();
+        saveDebounced();
     });
 
     $('#cb_board_name').on('input', function () {
-        settings.boardName = $(this).val();
-        saveSettingsDebounced();
+        settings.boardName = String($(this).val());
+        saveDebounced();
     });
 
     $('#cb_post_count').on('input', function () {
         settings.postCount = parseInt($(this).val(), 10) || 5;
-        saveSettingsDebounced();
+        saveDebounced();
     });
 
     $('#cb_max_comments').on('input', function () {
         settings.maxComments = parseInt($(this).val(), 10) || 20;
-        saveSettingsDebounced();
+        saveDebounced();
     });
 
     $('#cb_reader_desc').on('input', function () {
-        settings.readerDescription = $(this).val();
-        saveSettingsDebounced();
+        settings.readerDescription = String($(this).val());
+        saveDebounced();
     });
 
     $('#cb_community_desc').on('input', function () {
-        settings.communityDescription = $(this).val();
-        saveSettingsDebounced();
+        settings.communityDescription = String($(this).val());
+        saveDebounced();
     });
 }
 
@@ -320,11 +325,10 @@ function addToggleButton() {
         s.enabled = !s.enabled;
         button.classList.toggle('active', s.enabled);
         $('#cb_enabled').prop('checked', s.enabled);
-        const { saveSettingsDebounced } = SillyTavern.getContext();
-        saveSettingsDebounced();
+        SillyTavern.getContext().saveSettingsDebounced();
+        toastr.info(`Community Board ${s.enabled ? 'ON' : 'OFF'}`);
     });
 
-    // Add to the send form area for easy access
     const sendForm = document.getElementById('send_form');
     if (sendForm) {
         sendForm.insertBefore(button, sendForm.firstChild);
@@ -336,39 +340,39 @@ function updateToggleButton(enabled) {
     if (btn) btn.classList.toggle('active', enabled);
 }
 
-// ===== Generate Interceptor (Remove board from AI context) =====
-globalThis.communityBoardInterceptor = function (chat, contextSize, abort, type) {
-    removeBoardFromContext(chat);
-};
-
 // ===== Main Init =====
 (async function () {
-    const { eventSource, event_types } = SillyTavern.getContext();
+    const context = SillyTavern.getContext();
 
-    // Load UI
-    await loadSettingsUI();
+    // Load settings UI and toggle button
+    loadSettingsUI();
     addToggleButton();
 
-    // Listen to events
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (messageIndex) => {
-        const messageElement = document.querySelector(`[mesid="${messageIndex}"]`);
+    // When AI message is rendered -> parse and display board
+    context.eventSource.on(context.eventTypes.CHARACTER_MESSAGE_RENDERED, (messageIndex) => {
+        const messageElement = document.querySelector(`.mes[mesid="${messageIndex}"]`);
         if (messageElement) {
-            processMessageForDisplay(messageElement);
+            processMessageElement(messageElement);
         }
     });
 
-    // Re-process all messages when chat changes
-    eventSource.on(event_types.CHAT_CHANGED, () => {
-        setTimeout(() => {
-            document.querySelectorAll('.mes[is_user="false"]').forEach(el => {
-                processMessageForDisplay(el);
-            });
-        }, 500);
+    // When chat changes -> re-process all messages
+    context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
+        setTimeout(processAllMessages, 500);
     });
 
-    // Inject prompt on generation
-    eventSource.on(event_types.GENERATION_AFTER_COMMANDS, onGenerationStarted);
-    eventSource.on(event_types.GENERATION_ENDED, onGenerationEnded);
+    // Before generation -> inject prompt
+    context.eventSource.on(context.eventTypes.GENERATION_STARTED, () => {
+        injectPrompt();
+    });
 
-    console.log('[Community Board] Extension loaded successfully!');
+    // After generation -> clear prompt injection
+    context.eventSource.on(context.eventTypes.GENERATION_ENDED, () => {
+        context.setExtensionPrompt(MODULE_NAME, '', 1, 0);
+    });
+
+    // Process any existing messages on load
+    setTimeout(processAllMessages, 1000);
+
+    console.log('[Community Board] Extension loaded!');
 })();
