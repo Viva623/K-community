@@ -81,11 +81,9 @@ function parseBoard(text) {
             .map(c => c.trim())
             .filter(c => c.length > 0);
 
-        // Parse comments and replies
         const comments = [];
         for (const raw of rawComments) {
             if (raw.startsWith('>>')) {
-                // This is a reply to the previous comment
                 const replyText = raw.substring(2).trim();
                 if (comments.length > 0) {
                     if (!comments[comments.length - 1].replies) {
@@ -93,7 +91,6 @@ function parseBoard(text) {
                     }
                     comments[comments.length - 1].replies.push(replyText);
                 } else {
-                    // No parent comment, treat as normal
                     comments.push({ text: replyText, replies: [] });
                 }
             } else {
@@ -112,21 +109,110 @@ function parseBoard(text) {
     return posts.length > 0 ? { posts, rawBoardText: boardText } : null;
 }
 
-// ===== HTML Renderer =====
-function renderBoard(posts, settings) {
+// ===== Show Board Popup (with page navigation) =====
+function showBoardPopup(posts, settings) {
+    document.querySelector('.cb-popup-overlay')?.remove();
+
     const randomViews = () => Math.floor(Math.random() * 300) + 1;
     const randomMinute = () => String(Math.floor(Math.random() * 60)).padStart(2, '0');
-    const uniqueId = Date.now();
 
-    let postsHtml = '';
-    posts.forEach((post, idx) => {
-        const postId = `cb-post-${uniqueId}-${idx}`;
+    // Pre-generate stable random values for each post
+    const postMeta = posts.map(() => ({
+        views: randomViews(),
+        minute: randomMinute(),
+    }));
+
+    const overlay = document.createElement('div');
+    overlay.classList.add('cb-popup-overlay');
+
+    const popup = document.createElement('div');
+    popup.classList.add('cb-popup');
+
+    const closeBtn = document.createElement('button');
+    closeBtn.classList.add('cb-popup-close');
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', () => overlay.remove());
+
+    const contentArea = document.createElement('div');
+    contentArea.classList.add('cb-popup-content');
+
+    popup.appendChild(closeBtn);
+    popup.appendChild(contentArea);
+    overlay.appendChild(popup);
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+
+    document.body.appendChild(overlay);
+
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            overlay.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    // ===== Render List View =====
+    function showListView() {
+        let listHtml = '';
+        posts.forEach((post, idx) => {
+            listHtml += `
+                <div class="post-item" data-post-index="${idx}">
+                    <div class="post-summary">
+                        <div class="post-summary-content">
+                            <p class="post-title">${post.title}</p>
+                            <div class="post-meta">
+                                <span>여시</span>
+                                <span class="dot">·</span>
+                                <span>00:${postMeta[idx].minute}</span>
+                                <span class="new-icon">N</span>
+                                <span class="dot">·</span>
+                                <span>조회 ${postMeta[idx].views}</span>
+                            </div>
+                        </div>
+                        <div class="comment-count">${post.commentCount}</div>
+                    </div>
+                </div>`;
+        });
+
+        contentArea.innerHTML = `
+            <div class="board-container">
+                <header class="board-header">
+                    <div class="header-left"><span>‹</span></div>
+                    <h1>${settings.boardName}</h1>
+                    <div class="header-icons"><span>🔔</span><span>☰</span></div>
+                </header>
+                <div class="board-info">
+                    <p class="post-count">
+                        <span class="new-text">새글</span>
+                        <span class="new-posts">${Math.floor(Math.random() * 50) + 10}</span>/${(Math.floor(Math.random() * 5000) + 1000).toLocaleString()}
+                    </p>
+                    <span class="notice-link">공지 보기</span>
+                </div>
+                <main class="post-list">
+                    ${listHtml}
+                </main>
+            </div>`;
+
+        // Attach click handlers to each post
+        contentArea.querySelectorAll('.post-item[data-post-index]').forEach(el => {
+            el.style.cursor = 'pointer';
+            el.addEventListener('click', () => {
+                const idx = parseInt(el.dataset.postIndex, 10);
+                showDetailView(idx);
+            });
+        });
+    }
+
+    // ===== Render Detail View =====
+    function showDetailView(idx) {
+        const post = posts[idx];
 
         let commentsHtml = '';
         post.comments.forEach((comment, cIdx) => {
             const isFirst = cIdx === 0;
-
-            // Main comment
             commentsHtml += `
                 <li class="comment-item">
                     <div class="comment-main">
@@ -142,7 +228,6 @@ function renderBoard(posts, settings) {
                     <span>⋮</span>
                 </li>`;
 
-            // Replies
             if (comment.replies && comment.replies.length > 0) {
                 for (const reply of comment.replies) {
                     commentsHtml += `
@@ -162,30 +247,35 @@ function renderBoard(posts, settings) {
             }
         });
 
-        postsHtml += `
-            <div class="post-item">
-                <input type="checkbox" id="${postId}" class="toggle-checkbox">
-                <label class="post-summary" for="${postId}">
-                    <div class="post-summary-content">
-                        <p class="post-title">${post.title}</p>
-                        <div class="post-meta">
-                            <span>여시</span>
+        contentArea.innerHTML = `
+            <div class="board-container">
+                <header class="board-header">
+                    <div class="header-left cb-back-btn"><span>‹</span></div>
+                    <h1>${settings.boardName}</h1>
+                    <div class="header-icons"><span>🔔</span><span>☰</span></div>
+                </header>
+                <div class="detail-view">
+                    <div class="detail-post-header">
+                        <p class="detail-post-title">${post.title}</p>
+                        <div class="detail-post-meta">
+                            <strong>여시</strong>
                             <span class="dot">·</span>
-                            <span>00:${randomMinute()}</span>
-                            <span class="new-icon">N</span>
+                            <span>00:${postMeta[idx].minute}</span>
                             <span class="dot">·</span>
-                            <span>조회 ${randomViews()}</span>
+                            <span>조회 ${postMeta[idx].views}</span>
                         </div>
                     </div>
-                    <div class="comment-count">${post.commentCount}</div>
-                </label>
-                <div class="post-expanded">
-                    <div class="post-body">
+                    <div class="detail-post-body">
                         <p>${post.content}</p>
+                    </div>
+                    <div class="detail-post-actions">
+                        <span>🤍 공감</span>
+                        <span>💬 댓글 ${post.commentCount}</span>
+                        <span>🔗 공유</span>
                     </div>
                     <div class="comments-section">
                         <div class="comments-header">
-                            <div><span>💬</span>댓글</div>
+                            <div><span>💬</span>댓글 ${post.commentCount}</div>
                             <div class="bingle">↻</div>
                         </div>
                         <ul class="comment-list">
@@ -194,60 +284,19 @@ function renderBoard(posts, settings) {
                     </div>
                 </div>
             </div>`;
-    });
 
-    return `<div class="board-container">
-        <header class="board-header">
-            <div class="header-left"><span>‹</span></div>
-            <h1>${settings.boardName}</h1>
-            <div class="header-icons"><span>🔔</span><span>☰</span></div>
-        </header>
-        <div class="board-info">
-            <p class="post-count">
-                <span class="new-text">새글</span>
-                <span class="new-posts">${Math.floor(Math.random() * 50) + 10}</span>/${(Math.floor(Math.random() * 5000) + 1000).toLocaleString()}
-            </p>
-            <span class="notice-link">공지 보기</span>
-        </div>
-        <main class="post-list">
-            ${postsHtml}
-        </main>
-    </div>`;
-}
+        // Back button
+        contentArea.querySelector('.cb-back-btn').style.cursor = 'pointer';
+        contentArea.querySelector('.cb-back-btn').addEventListener('click', () => {
+            showListView();
+        });
 
-// ===== Popup =====
-function showBoardPopup(posts, settings) {
-    document.querySelector('.cb-popup-overlay')?.remove();
+        // Scroll to top
+        contentArea.scrollTop = 0;
+    }
 
-    const boardHtml = renderBoard(posts, settings);
-
-    const overlay = document.createElement('div');
-    overlay.classList.add('cb-popup-overlay');
-    overlay.innerHTML = `
-        <div class="cb-popup">
-            <button class="cb-popup-close">✕</button>
-            <div class="cb-popup-content">
-                ${boardHtml}
-            </div>
-        </div>`;
-
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) overlay.remove();
-    });
-
-    overlay.querySelector('.cb-popup-close').addEventListener('click', () => {
-        overlay.remove();
-    });
-
-    document.body.appendChild(overlay);
-
-    const escHandler = (e) => {
-        if (e.key === 'Escape') {
-            overlay.remove();
-            document.removeEventListener('keydown', escHandler);
-        }
-    };
-    document.addEventListener('keydown', escHandler);
+    // Start with list view
+    showListView();
 }
 
 // ===== Get latest board data =====
@@ -275,7 +324,6 @@ function processMessageElement(messageElement) {
     boardDataStore[mesId] = parsed.posts;
     console.log(`[Community Board] Board data saved from message #${mesId} (${parsed.posts.length} posts)`);
 
-    // Remove the raw board text from displayed message
     const startIdx = rawHtml.indexOf(BOARD_START);
     const endIdx = rawHtml.indexOf(BOARD_END);
     if (startIdx !== -1 && endIdx !== -1) {
