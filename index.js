@@ -36,7 +36,7 @@ function getSettings() {
 function buildBoardPrompt(settings) {
     const postTemplate = Array.from({ length: settings.postCount }, (_, i) => {
         const n = i + 1;
-        return `POST[Post ${n} Title§Post ${n} Content§Number of comments on Post ${n}§Comments on Post ${n} (each comment separated by a § symbol. up to ${settings.maxComments})]`;
+        return `POST[Post ${n} Title§Post ${n} Content§Number of comments on Post ${n}§Comments on Post ${n} (each comment separated by a § symbol. Replies start with >>. up to ${settings.maxComments})]`;
     }).join('\n');
 
     return `# Important Mission: Display Reader Bulletin Board
@@ -46,6 +46,16 @@ For this one time only, at the very bottom of the response, include ${settings.p
 - ${settings.readerDescription}
 - ${settings.communityDescription}
 - If readers' opinions conflict, they may argue.
+- Comments that start with >> are replies to the comment directly above them. Use these to show readers arguing, agreeing, or reacting to each other.
+- Write comments in a natural Korean internet style. Examples of tone and style:
+  - "아 ㅋㅋㅋㅋ 진짜 미쳤다"
+  - "ㄹㅇ 이건 좀 아닌데..."
+  - "헐 나만 이거 보고 심장 터질뻔했음?"
+  - "ㅇㅈ 개공감 ㅠㅠ"
+  - "아니 근데 이 남자 왜 이러는겨 진짜"
+  - ">>ㄹㅇㅋㅋ 나도 그거 보고 소리지름"
+  - ">>아 그건 좀 억까 아님?"
+- Use abbreviations (ㅋㅋ, ㅠㅠ, ㄹㅇ, ㅇㅈ, ㄱㅇㄷ, ㅁㅊ, ㄴㄴ, ㅇㅇ), omit punctuation, and mix in profanity or exaggeration as real Korean community users would.
 - Bulletin Board Template (Please **strictly** adhere to the following template.):
 
 ${BOARD_START}
@@ -66,10 +76,30 @@ function parseBoard(text) {
     const regex = /POST\[([^§]+)§([^§]+)§(\d+)§([^\]]*)\]/g;
     while ((match = regex.exec(boardText)) !== null) {
         const [, title, content, commentCount, commentsRaw] = match;
-        const comments = commentsRaw
+        const rawComments = commentsRaw
             .split('§')
             .map(c => c.trim())
             .filter(c => c.length > 0);
+
+        // Parse comments and replies
+        const comments = [];
+        for (const raw of rawComments) {
+            if (raw.startsWith('>>')) {
+                // This is a reply to the previous comment
+                const replyText = raw.substring(2).trim();
+                if (comments.length > 0) {
+                    if (!comments[comments.length - 1].replies) {
+                        comments[comments.length - 1].replies = [];
+                    }
+                    comments[comments.length - 1].replies.push(replyText);
+                } else {
+                    // No parent comment, treat as normal
+                    comments.push({ text: replyText, replies: [] });
+                }
+            } else {
+                comments.push({ text: raw, replies: [] });
+            }
+        }
 
         posts.push({
             title: title.trim(),
@@ -95,6 +125,8 @@ function renderBoard(posts, settings) {
         let commentsHtml = '';
         post.comments.forEach((comment, cIdx) => {
             const isFirst = cIdx === 0;
+
+            // Main comment
             commentsHtml += `
                 <li class="comment-item">
                     <div class="comment-main">
@@ -104,11 +136,30 @@ function renderBoard(posts, settings) {
                             <span>00:${randomMinute()}</span>
                         </div>
                         <p class="comment-text">
-                            ${isFirst ? '<span class="first-comment-badge">첫댓글</span> ' : ''}${comment}
+                            ${isFirst ? '<span class="first-comment-badge">첫댓글</span> ' : ''}${comment.text}
                         </p>
                     </div>
                     <span>⋮</span>
                 </li>`;
+
+            // Replies
+            if (comment.replies && comment.replies.length > 0) {
+                for (const reply of comment.replies) {
+                    commentsHtml += `
+                        <li class="comment-item comment-reply">
+                            <div class="reply-arrow">┗</div>
+                            <div class="comment-main">
+                                <div class="comment-meta">
+                                    <strong>여시</strong>
+                                    <span class="new-icon">N</span>
+                                    <span>00:${randomMinute()}</span>
+                                </div>
+                                <p class="comment-text">${reply}</p>
+                            </div>
+                            <span>⋮</span>
+                        </li>`;
+                }
+            }
         });
 
         postsHtml += `
@@ -166,7 +217,6 @@ function renderBoard(posts, settings) {
 
 // ===== Popup =====
 function showBoardPopup(posts, settings) {
-    // Remove existing popup
     document.querySelector('.cb-popup-overlay')?.remove();
 
     const boardHtml = renderBoard(posts, settings);
@@ -181,19 +231,16 @@ function showBoardPopup(posts, settings) {
             </div>
         </div>`;
 
-    // Close on overlay click
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) overlay.remove();
     });
 
-    // Close button
     overlay.querySelector('.cb-popup-close').addEventListener('click', () => {
         overlay.remove();
     });
 
     document.body.appendChild(overlay);
 
-    // Close on ESC
     const escHandler = (e) => {
         if (e.key === 'Escape') {
             overlay.remove();
@@ -224,7 +271,6 @@ function processMessageElement(messageElement) {
     const parsed = parseBoard(textContent);
     if (!parsed || parsed.posts.length === 0) return;
 
-    // Store the parsed data
     const mesId = messageElement.getAttribute('mesid');
     boardDataStore[mesId] = parsed.posts;
     console.log(`[Community Board] Board data saved from message #${mesId} (${parsed.posts.length} posts)`);
@@ -237,25 +283,13 @@ function processMessageElement(messageElement) {
         const after = rawHtml.substring(endIdx + BOARD_END.length);
         messageText.innerHTML = before + after;
     } else {
-        // Try removing via encoded HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = rawHtml;
-        const cleanedText = tempDiv.textContent;
-        const sIdx = cleanedText.indexOf(BOARD_START);
-        const eIdx = cleanedText.indexOf(BOARD_END);
-        if (sIdx !== -1 && eIdx !== -1) {
-            // Remove everything between markers using a regex on innerHTML
-            messageText.innerHTML = rawHtml.replace(
-                /&lt;~ Board Start ~&gt;[\s\S]*?&lt;~ Board End ~&gt;/g,
-                ''
-            );
-        }
+        messageText.innerHTML = rawHtml.replace(
+            /&lt;~ Board Start ~&gt;[\s\S]*?&lt;~ Board End ~&gt;/g,
+            ''
+        );
     }
 
-    // Mark as processed
     messageElement.dataset.cbProcessed = 'true';
-
-    // Update badge
     updateButtonBadge();
 }
 
@@ -402,7 +436,7 @@ function addMainButton() {
         if (latest) {
             showBoardPopup(latest, getSettings());
         } else {
-            toastr.warning('아직 생성된 게시판이 없어요! 게시판을 활성화하고 메시지를 보내보세요.');
+            toastr.warning('아직 생성된 게시판이 없어요! Extensions 설정에서 게시판을 활성화하고 메시지를 보내보세요.');
         }
     });
 
@@ -419,7 +453,6 @@ function addMainButton() {
     loadSettingsUI();
     addMainButton();
 
-    // When AI message is rendered -> extract board data and hide it
     context.eventSource.on(context.eventTypes.CHARACTER_MESSAGE_RENDERED, (messageIndex) => {
         const messageElement = document.querySelector(`.mes[mesid="${messageIndex}"]`);
         if (messageElement) {
@@ -427,26 +460,21 @@ function addMainButton() {
         }
     });
 
-    // When chat changes -> re-process all messages
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
-        // Clear stored boards for new chat
         Object.keys(boardDataStore).forEach(k => delete boardDataStore[k]);
         updateButtonBadge();
         setTimeout(processAllMessages, 500);
     });
 
-    // Before generation -> inject prompt
     context.eventSource.on(context.eventTypes.GENERATION_STARTED, () => {
         injectPrompt();
     });
 
-    // After generation -> clear prompt
     context.eventSource.on(context.eventTypes.GENERATION_ENDED, () => {
         const ctx = SillyTavern.getContext();
         ctx.setExtensionPrompt(MODULE_NAME, '', 1, 0);
     });
 
-    // Process existing messages on load
     setTimeout(processAllMessages, 1000);
 
     console.log('[Community Board] Extension loaded!');
