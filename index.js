@@ -145,7 +145,7 @@ function showBoardPopup(settings) {
     const overlay = document.createElement('div');
     overlay.classList.add('cb-popup-overlay');
     // 인라인 스타일로 강제 적용 - 모바일 호환
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;overflow:visible;';
 
     const popup = document.createElement('div');
     popup.classList.add('cb-popup');
