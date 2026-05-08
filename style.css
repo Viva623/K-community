@@ -56,15 +56,18 @@
 
 .cb-popup {
     position: relative !important;
-    width: 90% !important;
+    width: 90vw !important;
     max-width: 480px !important;
-    max-height: 90dvh !important;
-    margin: 0 auto !important;            /* 5vh auto → 0 auto 로 변경! */
+    min-height: 70vh !important;           /* 최소 높이 추가! */
+    max-height: 90vh !important;           /* dvh → vh 로 변경! */
+    margin: 0 auto !important;
     border-radius: 16px !important;
     overflow: hidden !important;
     animation: cb-slide-up 0.3s ease !important;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
-    flex-shrink: 0 !important;            /* flex 안에서 찌그러지지 않게 */
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
 @keyframes cb-slide-up {
@@ -96,7 +99,8 @@
 
 .cb-popup-content {
     overflow-y: auto !important;
-    max-height: 90dvh !important;
+    flex: 1 !important;                    /* 남은 공간 다 차지하게! */
+    min-height: 0 !important;
 }
 
 /* ===== Board Container ===== */
