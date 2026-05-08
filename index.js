@@ -144,7 +144,6 @@ function showBoardPopup(settings) {
 
     const overlay = document.createElement('div');
     overlay.classList.add('cb-popup-overlay');
-    // 인라인 스타일로 강제 적용 - 모바일 호환
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;overflow:visible;';
 
     const popup = document.createElement('div');
@@ -155,8 +154,6 @@ function showBoardPopup(settings) {
     closeBtn.classList.add('cb-popup-close');
     closeBtn.textContent = '✕';
     closeBtn.style.cssText = 'position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#fff;z-index:10;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;';
-    closeBtn.addEventListener('click', () => overlay.remove());
-    closeBtn.addEventListener('touchend', (e) => { e.preventDefault(); overlay.remove(); });
 
     const contentArea = document.createElement('div');
     contentArea.classList.add('cb-popup-content');
@@ -166,17 +163,14 @@ function showBoardPopup(settings) {
     popup.appendChild(contentArea);
     overlay.appendChild(popup);
 
+    // 오버레이 바깥 클릭으로 닫기
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) overlay.remove();
     });
 
     document.body.appendChild(overlay);
-    
-    // 스크롤 위치 초기화
-    setTimeout(() => {
-        overlay.scrollTop = 0;
-    }, 50);
 
+    // ESC로 닫기
     const escHandler = (e) => {
         if (e.key === 'Escape') {
             overlay.remove();
@@ -184,6 +178,28 @@ function showBoardPopup(settings) {
         }
     };
     document.addEventListener('keydown', escHandler);
+
+    // ===== 터치 스크롤 vs 탭 구분 =====
+    let touchStartY = 0;
+    function addTapHandler(el, callback) {
+        el.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+        el.addEventListener('touchend', (e) => {
+            const diff = Math.abs(e.changedTouches[0].clientY - touchStartY);
+            if (diff < 10) {
+                e.preventDefault();
+                callback();
+            }
+        });
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            callback();
+        });
+    }
+
+    // closeBtn 터치 대응
+    addTapHandler(closeBtn, () => overlay.remove());
 
     let currentPage = 1;
 
@@ -252,23 +268,21 @@ function showBoardPopup(settings) {
                 ${totalPages > 1 ? paginationHtml : ''}
             </div>`;
 
+        // 게시글 클릭
         contentArea.querySelectorAll('.post-item[data-post-index]').forEach(el => {
-            const handler = () => {
+            addTapHandler(el, () => {
                 const idx = parseInt(el.dataset.postIndex, 10);
                 showDetailView(idx);
-            };
-            el.addEventListener('click', handler);
-            el.addEventListener('touchend', (e) => { e.preventDefault(); handler(); });
+            });
         });
 
+        // 페이지네이션 클릭
         contentArea.querySelectorAll('[data-page]').forEach(el => {
-            const handler = () => {
+            addTapHandler(el, () => {
                 const p = parseInt(el.dataset.page, 10);
                 showListView(p);
                 contentArea.scrollTop = 0;
-            };
-            el.addEventListener('click', handler);
-            el.addEventListener('touchend', (e) => { e.preventDefault(); handler(); });
+            });
         });
     }
 
@@ -374,9 +388,9 @@ function showBoardPopup(settings) {
                 </div>
             </div>`;
 
+        // 뒤로가기 버튼
         const backBtn = contentArea.querySelector('.cb-back-btn');
-        backBtn.addEventListener('click', () => showListView(currentPage));
-        backBtn.addEventListener('touchend', (e) => { e.preventDefault(); showListView(currentPage); });
+        addTapHandler(backBtn, () => showListView(currentPage));
 
         contentArea.scrollTop = 0;
     }
