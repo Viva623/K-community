@@ -5,9 +5,11 @@ const MODULE_NAME = 'community_board';
 const BOARD_START = '<~ Board Start ~>';
 const BOARD_END = '<~ Board End ~>';
 
-// ===== Board Data Store (global) =====
-const boardDataStore = {};
-globalThis.boardDataStore = boardDataStore;
+// ===== Accumulated posts (global) =====
+const allPosts = [];
+globalThis.cbAllPosts = allPosts;
+
+const POSTS_PER_PAGE = 10;
 
 // ===== Default Settings =====
 const defaultSettings = Object.freeze({
@@ -111,17 +113,23 @@ function parseBoard(text) {
     return posts.length > 0 ? { posts, rawBoardText: boardText } : null;
 }
 
-// ===== Show Board Popup (with page navigation) =====
-function showBoardPopup(posts, settings) {
+// ===== Generate stable meta for a post =====
+function assignPostMeta(post) {
+    if (!post._meta) {
+        post._meta = {
+            views: Math.floor(Math.random() * 300) + 1,
+            minute: String(Math.floor(Math.random() * 60)).padStart(2, '0'),
+            id: Date.now() + Math.floor(Math.random() * 10000),
+        };
+    }
+    return post._meta;
+}
+
+// ===== Show Board Popup =====
+function showBoardPopup(settings) {
     document.querySelector('.cb-popup-overlay')?.remove();
 
     const randomMinute = () => String(Math.floor(Math.random() * 60)).padStart(2, '0');
-    const randomViews = () => Math.floor(Math.random() * 300) + 1;
-
-    const postMeta = posts.map(() => ({
-        views: randomViews(),
-        minute: randomMinute(),
-    }));
 
     const overlay = document.createElement('div');
     overlay.classList.add('cb-popup-overlay');
@@ -155,28 +163,54 @@ function showBoardPopup(posts, settings) {
     };
     document.addEventListener('keydown', escHandler);
 
+    let currentPage = 1;
+
     // ===== List View =====
-    function showListView() {
+    function showListView(page) {
+        currentPage = page;
+        const totalPages = Math.max(1, Math.ceil(allPosts.length / POSTS_PER_PAGE));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        // Newest first
+        const reversed = [...allPosts].reverse();
+        const startIdx = (currentPage - 1) * POSTS_PER_PAGE;
+        const pagePosts = reversed.slice(startIdx, startIdx + POSTS_PER_PAGE);
+
         let listHtml = '';
-        posts.forEach((post, idx) => {
+        pagePosts.forEach((post, idx) => {
+            const meta = assignPostMeta(post);
+            const globalIdx = allPosts.length - 1 - (startIdx + idx);
             listHtml += `
-                <div class="post-item" data-post-index="${idx}">
+                <div class="post-item" data-post-index="${globalIdx}">
                     <div class="post-summary">
                         <div class="post-summary-content">
                             <p class="post-title">${post.title}</p>
                             <div class="post-meta">
                                 <span>여시</span>
                                 <span class="dot">·</span>
-                                <span>00:${postMeta[idx].minute}</span>
+                                <span>00:${meta.minute}</span>
                                 <span class="new-icon">N</span>
                                 <span class="dot">·</span>
-                                <span>조회 ${postMeta[idx].views}</span>
+                                <span>조회 ${meta.views}</span>
                             </div>
                         </div>
                         <div class="comment-count">${post.commentCount}</div>
                     </div>
                 </div>`;
         });
+
+        // Pagination
+        let paginationHtml = '<div class="cb-pagination">';
+        if (currentPage > 1) {
+            paginationHtml += `<span class="cb-page-btn" data-page="${currentPage - 1}">‹ 이전</span>`;
+        }
+        for (let p = 1; p <= totalPages; p++) {
+            paginationHtml += `<span class="cb-page-num ${p === currentPage ? 'cb-page-active' : ''}" data-page="${p}">${p}</span>`;
+        }
+        if (currentPage < totalPages) {
+            paginationHtml += `<span class="cb-page-btn" data-page="${currentPage + 1}">다음 ›</span>`;
+        }
+        paginationHtml += '</div>';
 
         contentArea.innerHTML = `
             <div class="board-container">
@@ -188,27 +222,39 @@ function showBoardPopup(posts, settings) {
                 <div class="board-info">
                     <p class="post-count">
                         <span class="new-text">새글</span>
-                        <span class="new-posts">${Math.floor(Math.random() * 50) + 10}</span>/${(Math.floor(Math.random() * 5000) + 1000).toLocaleString()}
+                        <span class="new-posts">${Math.min(allPosts.length, 50)}</span>/${allPosts.length.toLocaleString()}
                     </p>
                     <span class="notice-link">공지 보기</span>
                 </div>
                 <main class="post-list">
-                    ${listHtml}
+                    ${allPosts.length === 0 ? '<div class="cb-empty">아직 게시글이 없어요</div>' : listHtml}
                 </main>
+                ${totalPages > 1 ? paginationHtml : ''}
             </div>`;
 
+        // Post click
         contentArea.querySelectorAll('.post-item[data-post-index]').forEach(el => {
-            el.style.cursor = 'pointer';
             el.addEventListener('click', () => {
                 const idx = parseInt(el.dataset.postIndex, 10);
                 showDetailView(idx);
+            });
+        });
+
+        // Pagination click
+        contentArea.querySelectorAll('[data-page]').forEach(el => {
+            el.addEventListener('click', () => {
+                const page = parseInt(el.dataset.page, 10);
+                showListView(page);
+                contentArea.scrollTop = 0;
             });
         });
     }
 
     // ===== Detail View =====
     function showDetailView(idx) {
-        const post = posts[idx];
+        const post = allPosts[idx];
+        if (!post) return;
+        const meta = assignPostMeta(post);
 
         let commentsHtml = '';
         post.comments.forEach((comment, cIdx) => {
@@ -260,9 +306,9 @@ function showBoardPopup(posts, settings) {
                         <div class="detail-post-meta">
                             <strong>여시</strong>
                             <span class="dot">·</span>
-                            <span>00:${postMeta[idx].minute}</span>
+                            <span>00:${meta.minute}</span>
                             <span class="dot">·</span>
-                            <span>조회 ${postMeta[idx].views}</span>
+                            <span>조회 ${meta.views}</span>
                         </div>
                     </div>
                     <div class="detail-post-body">
@@ -286,22 +332,15 @@ function showBoardPopup(posts, settings) {
             </div>`;
 
         contentArea.querySelector('.cb-back-btn').addEventListener('click', () => {
-            showListView();
+            showListView(currentPage);
         });
 
         contentArea.scrollTop = 0;
     }
 
-    showListView();
+    showListView(1);
 }
 globalThis.showBoardPopup = showBoardPopup;
-
-// ===== Get latest board data =====
-function getLatestBoard() {
-    const keys = Object.keys(boardDataStore).map(Number).sort((a, b) => b - a);
-    if (keys.length === 0) return null;
-    return boardDataStore[keys[0]];
-}
 
 // ===== Process a single message element =====
 function processMessageElement(messageElement) {
@@ -318,9 +357,17 @@ function processMessageElement(messageElement) {
     if (!parsed || parsed.posts.length === 0) return;
 
     const mesId = messageElement.getAttribute('mesid');
-    boardDataStore[mesId] = parsed.posts;
-    console.log(`[Community Board] Board data saved from message #${mesId} (${parsed.posts.length} posts)`);
 
+    // Add posts to accumulated list (avoid duplicates by mesId)
+    if (!allPosts.some(p => p._mesId === mesId)) {
+        for (const post of parsed.posts) {
+            post._mesId = mesId;
+            allPosts.push(post);
+        }
+        console.log(`[Community Board] ${parsed.posts.length} posts added from message #${mesId} (total: ${allPosts.length})`);
+    }
+
+    // Remove the raw board text from displayed message
     const startIdx = rawHtml.indexOf(BOARD_START);
     const endIdx = rawHtml.indexOf(BOARD_END);
     if (startIdx !== -1 && endIdx !== -1) {
@@ -351,7 +398,7 @@ function updateButtonBadge() {
     if (!btn) return;
 
     let badge = btn.querySelector('.cb-badge');
-    const count = Object.keys(boardDataStore).length;
+    const count = allPosts.length;
 
     if (count > 0) {
         if (!badge) {
@@ -415,7 +462,7 @@ function loadSettingsUI() {
                     <input id="cb_board_name" type="text" class="text_pole" value="${settings.boardName}" />
                 </div>
                 <div class="cb-setting-row">
-                    <label for="cb_post_count">게시글 수</label>
+                    <label for="cb_post_count">게시글 수 (턴당)</label>
                     <input id="cb_post_count" type="number" class="text_pole" min="1" max="10" value="${settings.postCount}" />
                 </div>
                 <div class="cb-setting-row">
@@ -469,7 +516,7 @@ function loadSettingsUI() {
     });
 }
 
-// ===== Main Button (Open Board Only) =====
+// ===== Main Button =====
 function addMainButton() {
     const button = document.createElement('div');
     button.id = 'community-board-btn';
@@ -482,10 +529,8 @@ function addMainButton() {
         e.preventDefault();
         e.stopPropagation();
         console.log('[Community Board] Button clicked!');
-        const latest = getLatestBoard();
-        console.log('[Community Board] Latest board:', latest);
-        if (latest) {
-            showBoardPopup(latest, getSettings());
+        if (allPosts.length > 0) {
+            showBoardPopup(getSettings());
         } else {
             toastr.warning('아직 생성된 게시판이 없어요! Extensions 설정에서 게시판을 활성화하고 메시지를 보내보세요.');
         }
@@ -495,8 +540,6 @@ function addMainButton() {
     if (sendForm) {
         sendForm.insertBefore(button, sendForm.firstChild);
         console.log('[Community Board] Button added to send_form');
-    } else {
-        console.warn('[Community Board] send_form not found!');
     }
 }
 
@@ -515,7 +558,7 @@ function addMainButton() {
     });
 
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
-        Object.keys(boardDataStore).forEach(k => delete boardDataStore[k]);
+        allPosts.length = 0;
         updateButtonBadge();
         setTimeout(processAllMessages, 500);
     });
