@@ -1,37 +1,25 @@
-/* ===== Community Board Extension Styles ===== */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-
-/* ===== 메인 버튼 ===== */
-#community-board-toggle {
-    position: relative;
-    cursor: pointer;
-    font-size: 1.2em;
-    padding: 2px 6px;
-    border-radius: 4px;
-    transition: all 0.2s;
-    user-select: none;
-    -webkit-user-select: none;
-}
-#community-board-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* ===== 뱃지 ===== */
-.cb-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background-color: #e53935;
-    color: white;
-    font-size: 0.55em;
-    font-weight: bold;
-    min-width: 14px;
-    height: 14px;
-    border-radius: 7px;
-    display: flex;
-    justify-content: center;
+/* ===== 미리보기 버튼 ===== */
+.cb-open-button {
+    display: inline-flex;
     align-items: center;
-    padding: 0 3px;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px 14px;
+    background-color: #f1f3f5;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.9em;
+    color: #495057;
+    transition: all 0.2s;
+}
+.cb-open-button:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+.cb-open-icon {
+    font-size: 1.2em;
 }
 
 /* ===== 팝업 오버레이 ===== */
@@ -48,6 +36,7 @@
     align-items: center;
     animation: cb-fade-in 0.2s ease;
 }
+
 @keyframes cb-fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -67,6 +56,7 @@
     flex-direction: column;
     animation: cb-slide-up 0.25s ease;
 }
+
 @keyframes cb-slide-up {
     from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -99,262 +89,10 @@
     overflow-y: auto;
     max-height: 85vh;
 }
+
+/* ===== 팝업 안의 board-container 스타일 오버라이드 ===== */
 .cb-popup .board-container {
     border: none;
     border-radius: 0;
     max-width: 100%;
-}
-
-/* ===== 게시판 컨테이너 ===== */
-.board-container {
-    max-width: 600px;
-    margin: 0 auto;
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
-    border-radius: 10px;
-    font-family: 'Noto Sans KR', sans-serif;
-}
-
-/* ===== 헤더 ===== */
-.board-container .board-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    border-bottom: 1px solid #e9ecef;
-}
-.board-container .board-header h1 {
-    margin: 0;
-    font-size: 1.1em;
-    font-weight: 500;
-    color: #000000;
-    text-align: center;
-    flex-grow: 1;
-}
-.board-container .header-left,
-.board-container .header-icons {
-    display: flex;
-    align-items: center;
-    flex-basis: 50px;
-}
-.board-container .header-icons {
-    justify-content: flex-end;
-    gap: 15px;
-}
-.board-container .header-left > span,
-.board-container .header-icons span {
-    font-size: 1.1em;
-    color: #333;
-    cursor: pointer;
-}
-.board-container .header-left > span {
-    font-size: 1.5em;
-}
-.bingle {
-    font-size: 20px;
-}
-
-/* ===== 새글 정보 ===== */
-.board-container .board-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 15px;
-    font-size: 0.9em;
-    border-bottom: 1px solid #e9ecef;
-}
-.board-container .post-count {
-    color: grey;
-    margin: 0;
-}
-.board-container .post-count .new-text {
-    color: #000000;
-    font-weight: bold;
-}
-.board-container .post-count .new-posts {
-    color: #e53935;
-    font-weight: bold;
-}
-.board-container .notice-link {
-    color: #495057;
-    font-size: 0.9em;
-}
-
-/* ===== 게시글 목록 ===== */
-.board-container .post-list {
-    padding: 0;
-    margin: 0;
-}
-.board-container .post-item {
-    border-bottom: 1px solid #e9ecef;
-}
-.board-container .post-item:last-child {
-    border-bottom: none;
-}
-.board-container .toggle-checkbox {
-    display: none;
-}
-.board-container .post-summary {
-    padding: 10px 15px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-}
-.board-container .post-summary-content {
-    flex-grow: 1;
-}
-.board-container .post-title {
-    margin: 0 0 5px 0;
-    font-size: 1em;
-    color: #000000;
-    transition: all 0.2s ease-in-out;
-}
-.board-container .post-meta {
-    display: flex;
-    align-items: center;
-    font-size: 0.8em;
-    color: #868e96;
-}
-.board-container .post-meta span {
-    margin-right: 5px;
-}
-.board-container .post-meta .dot {
-    margin: 0 5px;
-}
-.board-container .new-icon {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    width: 16px;
-    height: 16px;
-    background-color: #e53935;
-    color: white;
-    font-size: 0.7em;
-    font-weight: bold;
-    border-radius: 50%;
-    margin: 0 5px;
-}
-.board-container .comment-count {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-width: 28px;
-    height: 28px;
-    background-color: #f1f3f5;
-    border-radius: 14px;
-    font-size: 0.9em;
-    color: #495057;
-    margin-left: 15px;
-    padding: 0 5px;
-}
-
-/* ===== 펼침/접힘 ===== */
-.board-container .post-expanded {
-    max-height: 0;
-    overflow: hidden;
-    padding: 0 15px;
-    transition: max-height 0.3s ease-out;
-}
-.board-container .toggle-checkbox:checked ~ .post-expanded {
-    max-height: 1500px;
-    padding: 0 15px 15px 15px;
-    transition: max-height 0.4s ease-in;
-}
-.board-container .toggle-checkbox:checked ~ .post-summary .post-title {
-    font-size: 1.1em;
-    font-weight: bold;
-}
-.board-container .post-body {
-    padding: 16px 0;
-    margin: 0;
-    border-top: 1px solid #e9ecef;
-    border-bottom: 1px solid #e9ecef;
-    line-height: 1.6;
-}
-.board-container .post-body p {
-    margin: 0;
-    color: #000000;
-}
-
-/* ===== 댓글 ===== */
-.board-container .comments-section {
-    margin: 10px 0 0 0;
-}
-.board-container .comments-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #495057;
-    font-size: 0.95em;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e9ecef;
-}
-.board-container .comments-header span {
-    cursor: pointer;
-}
-.board-container .comments-header div > span {
-    margin-right: 6px;
-}
-.board-container .comment-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.board-container .comment-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 6px 0 0 0;
-    border-top: 1px solid #F1F3F5;
-}
-.board-container .comment-item:first-child {
-    border-top: none;
-    padding-top: 10px;
-}
-.board-container .comment-item:last-child {
-    padding-bottom: 0;
-}
-.board-container .comment-main {
-    flex: 1;
-}
-.board-container .comment-meta {
-    display: flex;
-    align-items: center;
-    margin-bottom: 6px;
-    font-size: 0.85em;
-}
-.board-container .comment-meta strong {
-    font-weight: 500;
-    color: #000000;
-}
-.board-container .comment-text {
-    margin: 0;
-    font-size: 0.95em;
-    line-height: 1.5;
-    color: #000000;
-}
-.board-container .first-comment-badge {
-    border: 1px solid #F0A0A0;
-    color: #E53935;
-    padding: 2px 5px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    margin-right: 6px;
-}
-.board-container .comment-item > span {
-    color: #ADB5BD;
-    margin-left: 16px;
-    padding-top: 4px;
-    cursor: pointer;
-}
-
-/* ===== 설정 패널 ===== */
-#community-board-settings .inline-drawer-content {
-    padding: 10px;
-}
-#community-board-settings .cb-setting-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
 }
