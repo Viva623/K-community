@@ -71,7 +71,7 @@
     border: none;
     font-size: 22px;
     cursor: pointer;
-    color: #666;
+    color: #fff;
     z-index: 10;
     width: 32px;
     height: 32px;
@@ -82,8 +82,7 @@
     transition: background 0.2s;
 }
 .cb-popup-close:hover {
-    background: rgba(0,0,0,0.1);
-    color: #333;
+    background: rgba(255,255,255,0.2);
 }
 
 .cb-popup-content {
@@ -293,6 +292,20 @@
 }
 .comment-item:last-child {
     border-bottom: none;
+}
+
+/* Reply style */
+.comment-reply {
+    background: #f3f0ff;
+    padding-left: 12px;
+}
+.reply-arrow {
+    color: #7c4dff;
+    font-weight: 700;
+    margin-right: 8px;
+    font-size: 14px;
+    flex-shrink: 0;
+    padding-top: 1px;
 }
 
 .comment-main {
