@@ -144,17 +144,23 @@ function showBoardPopup(settings) {
 
     const overlay = document.createElement('div');
     overlay.classList.add('cb-popup-overlay');
+    // 인라인 스타일로 강제 적용 - 모바일 호환
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;overflow-y:auto;display:block;padding:3vh 0;box-sizing:border-box;';
 
     const popup = document.createElement('div');
     popup.classList.add('cb-popup');
+    popup.style.cssText = 'position:relative;width:90%;max-width:480px;margin:0 auto;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.3);background:#ffffff;';
 
     const closeBtn = document.createElement('button');
     closeBtn.classList.add('cb-popup-close');
     closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#fff;z-index:10;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;';
     closeBtn.addEventListener('click', () => overlay.remove());
+    closeBtn.addEventListener('touchend', (e) => { e.preventDefault(); overlay.remove(); });
 
     const contentArea = document.createElement('div');
     contentArea.classList.add('cb-popup-content');
+    contentArea.style.cssText = 'overflow-y:auto;max-height:85vh;-webkit-overflow-scrolling:touch;';
 
     popup.appendChild(closeBtn);
     popup.appendChild(contentArea);
@@ -166,19 +172,9 @@ function showBoardPopup(settings) {
 
     document.body.appendChild(overlay);
 
-    // 디버그 - 높이 확인
-    const vh = window.innerHeight;
-    const debugDiv = document.createElement('div');
-    debugDiv.style.cssText = 'position:fixed;top:0;left:0;background:red;color:white;font-size:20px;z-index:9999999;padding:10px;';
-    debugDiv.textContent = 'popup:' + popup.offsetHeight + ' content:' + (popup.querySelector('.cb-popup-content')?.offsetHeight || 0) + ' window:' + vh;
-    document.body.appendChild(debugDiv);
-    setTimeout(() => debugDiv.remove(), 5000);
-    
-    // Force scroll to popup on mobile
+    // 스크롤 위치 초기화
     setTimeout(() => {
         overlay.scrollTop = 0;
-        window.scrollTo(0, 0);
-        popup.scrollIntoView({ behavior: 'instant', block: 'center' });
     }, 50);
 
     const escHandler = (e) => {
@@ -197,7 +193,6 @@ function showBoardPopup(settings) {
         const totalPages = Math.max(1, Math.ceil(allPosts.length / POSTS_PER_PAGE));
         if (currentPage > totalPages) currentPage = totalPages;
 
-        // Newest first (by timestamp)
         const sorted = [...allPosts].sort((a, b) => (b._timestamp || 0) - (a._timestamp || 0));
         const startIdx = (currentPage - 1) * POSTS_PER_PAGE;
         const pagePosts = sorted.slice(startIdx, startIdx + POSTS_PER_PAGE);
@@ -225,7 +220,6 @@ function showBoardPopup(settings) {
                 </div>`;
         });
 
-        // Pagination
         let paginationHtml = '<div class="cb-pagination">';
         if (currentPage > 1) {
             paginationHtml += `<span class="cb-page-btn" data-page="${currentPage - 1}">‹ 이전</span>`;
@@ -258,21 +252,23 @@ function showBoardPopup(settings) {
                 ${totalPages > 1 ? paginationHtml : ''}
             </div>`;
 
-        // Post click
         contentArea.querySelectorAll('.post-item[data-post-index]').forEach(el => {
-            el.addEventListener('click', () => {
+            const handler = () => {
                 const idx = parseInt(el.dataset.postIndex, 10);
                 showDetailView(idx);
-            });
+            };
+            el.addEventListener('click', handler);
+            el.addEventListener('touchend', (e) => { e.preventDefault(); handler(); });
         });
 
-        // Pagination click
         contentArea.querySelectorAll('[data-page]').forEach(el => {
-            el.addEventListener('click', () => {
+            const handler = () => {
                 const p = parseInt(el.dataset.page, 10);
                 showListView(p);
                 contentArea.scrollTop = 0;
-            });
+            };
+            el.addEventListener('click', handler);
+            el.addEventListener('touchend', (e) => { e.preventDefault(); handler(); });
         });
     }
 
@@ -283,7 +279,6 @@ function showBoardPopup(settings) {
         const meta = assignPostMeta(post);
         const postTime = post._timestamp || Date.now();
 
-        // Pre-generate stable comment times
         let commentTimeIndex = 0;
         const commentTimes = [];
         post.comments.forEach((comment) => {
@@ -379,9 +374,9 @@ function showBoardPopup(settings) {
                 </div>
             </div>`;
 
-        contentArea.querySelector('.cb-back-btn').addEventListener('click', () => {
-            showListView(currentPage);
-        });
+        const backBtn = contentArea.querySelector('.cb-back-btn');
+        backBtn.addEventListener('click', () => showListView(currentPage));
+        backBtn.addEventListener('touchend', (e) => { e.preventDefault(); showListView(currentPage); });
 
         contentArea.scrollTop = 0;
     }
@@ -406,20 +401,17 @@ function processMessageElement(messageElement) {
 
     const mesId = messageElement.getAttribute('mesid');
 
-    // Add posts with timestamps
     if (!allPosts.some(p => p._mesId === mesId)) {
         const now = Date.now();
         for (let i = 0; i < parsed.posts.length; i++) {
             const post = parsed.posts[i];
             post._mesId = mesId;
-            // Each post 1~5 min apart, oldest first
             post._timestamp = now - (parsed.posts.length - 1 - i) * (Math.floor(Math.random() * 4) + 1) * 60000;
             allPosts.push(post);
         }
         console.log(`[Community Board] ${parsed.posts.length} posts added from message #${mesId} (total: ${allPosts.length})`);
     }
 
-    // Remove the raw board text from displayed message
     const startIdx = rawHtml.indexOf(BOARD_START);
     const endIdx = rawHtml.indexOf(BOARD_END);
     if (startIdx !== -1 && endIdx !== -1) {
