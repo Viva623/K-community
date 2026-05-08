@@ -555,23 +555,25 @@ function loadSettingsUI() {
 
 // ===== Main Button =====
 function addMainButton() {
-    const button = document.createElement('div');
+    const button = document.createElement('button');
     button.id = 'community-board-btn';
     button.title = '게시판 열기';
     button.textContent = '📋';
-    button.style.zIndex = '9999';
-    button.style.position = 'relative';
+    button.type = 'button';
+    button.style.cssText = 'z-index:9999;position:relative;cursor:pointer;font-size:1.2em;padding:3px 5px;border-radius:5px;background:none;border:none;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;';
 
-    button.addEventListener('click', (e) => {
+    button.onclick = function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('[Community Board] Button clicked!');
+        e.stopImmediatePropagation();
+        console.log('[Community Board] Button activated!');
         if (allPosts.length > 0) {
             showBoardPopup(getSettings());
         } else {
             toastr.warning('아직 생성된 게시판이 없어요! Extensions 설정에서 게시판을 활성화하고 메시지를 보내보세요.');
         }
-    });
+        return false;
+    };
 
     const sendForm = document.getElementById('send_form');
     if (sendForm) {
