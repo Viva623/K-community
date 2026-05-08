@@ -1,0 +1,14 @@
+{
+    "display_name": "Community Board",
+    "loading_order": 100,
+    "requires": [],
+    "optional": [],
+    "dependencies": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "Your Name",
+    "version": "1.0.0",
+    "homePage": "https://github.com/your-username/SillyTavern-CommunityBoard",
+    "auto_update": true,
+    "generate_interceptor": "communityBoardInterceptor"
+}
