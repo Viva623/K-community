@@ -145,11 +145,11 @@ function showBoardPopup(settings) {
     const overlay = document.createElement('div');
     overlay.classList.add('cb-popup-overlay');
     // 인라인 스타일로 강제 적용 - 모바일 호환
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;overflow-y:auto;display:block;padding:3vh 0;box-sizing:border-box;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;';
 
     const popup = document.createElement('div');
     popup.classList.add('cb-popup');
-    popup.style.cssText = 'position:relative;width:90%;max-width:480px;margin:0 auto;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.3);background:#ffffff;';
+    popup.style.cssText = 'position:relative;width:90%;max-width:480px;height:80vh;margin:0;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.3);background:#ffffff;display:flex;flex-direction:column;';
 
     const closeBtn = document.createElement('button');
     closeBtn.classList.add('cb-popup-close');
@@ -160,7 +160,7 @@ function showBoardPopup(settings) {
 
     const contentArea = document.createElement('div');
     contentArea.classList.add('cb-popup-content');
-    contentArea.style.cssText = 'overflow-y:auto;max-height:85vh;-webkit-overflow-scrolling:touch;';
+    contentArea.style.cssText = 'flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;';
 
     popup.appendChild(closeBtn);
     popup.appendChild(contentArea);
