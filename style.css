@@ -1,39 +1,44 @@
-/* ===== 미리보기 버튼 ===== */
-.cb-open-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 12px;
-    padding: 8px 14px;
-    background-color: #f1f3f5;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
+/* ===== Community Board Styles ===== */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+
+/* Main Button */
+#community-board-btn {
+    position: relative;
     cursor: pointer;
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 0.9em;
-    color: #495057;
-    transition: all 0.2s;
-}
-.cb-open-button:hover {
-    background-color: #e9ecef;
-    border-color: #adb5bd;
-}
-.cb-open-icon {
     font-size: 1.2em;
+    padding: 3px 5px;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+#community-board-btn:hover {
+    background: rgba(255,255,255,0.1);
 }
 
-/* ===== 팝업 오버레이 ===== */
+.cb-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #e53935;
+    color: #fff;
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Popup Overlay */
 .cb-popup-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    z-index: 9999;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 99999;
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     animation: cb-fade-in 0.2s ease;
 }
 
@@ -42,57 +47,312 @@
     to { opacity: 1; }
 }
 
-/* ===== 팝업 본체 ===== */
 .cb-popup {
     position: relative;
     width: 90%;
-    max-width: 600px;
+    max-width: 480px;
     max-height: 85vh;
-    background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    animation: cb-slide-up 0.25s ease;
+    animation: cb-slide-up 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
 @keyframes cb-slide-up {
-    from { transform: translateY(30px); opacity: 0; }
+    from { transform: translateY(40px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* ===== 닫기 버튼 ===== */
 .cb-popup-close {
     position: absolute;
     top: 10px;
-    right: 14px;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.2em;
-    color: #868e96;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 22px;
     cursor: pointer;
-    border-radius: 50%;
+    color: #666;
     z-index: 10;
-    transition: all 0.2s;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
 }
 .cb-popup-close:hover {
-    background-color: #f1f3f5;
-    color: #495057;
+    background: rgba(0,0,0,0.1);
+    color: #333;
 }
 
-/* ===== 팝업 내부 스크롤 ===== */
 .cb-popup-content {
     overflow-y: auto;
     max-height: 85vh;
 }
 
-/* ===== 팝업 안의 board-container 스타일 오버라이드 ===== */
-.cb-popup .board-container {
-    border: none;
-    border-radius: 0;
-    max-width: 100%;
+/* ===== Board Container ===== */
+.board-container {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #ffffff;
+    color: #333333;
+    min-height: 100%;
+}
+
+/* Header */
+.board-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: #7c4dff;
+    color: #ffffff;
+}
+.board-header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+}
+.header-left span {
+    font-size: 22px;
+    cursor: pointer;
+    color: #ffffff;
+}
+.header-icons {
+    display: flex;
+    gap: 12px;
+    font-size: 18px;
+}
+
+/* Board Info */
+.board-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 13px;
+    color: #666666;
+}
+.post-count {
+    margin: 0;
+}
+.new-text {
+    color: #e53935;
+    font-weight: 700;
+}
+.new-posts {
+    color: #e53935;
+    font-weight: 700;
+}
+.notice-link {
+    color: #999999;
+    font-size: 12px;
+}
+
+/* Post List */
+.post-list {
+    background: #ffffff;
+}
+
+/* Post Item */
+.post-item {
+    border-bottom: 1px solid #eeeeee;
+}
+
+/* Toggle */
+.toggle-checkbox {
+    display: none;
+}
+
+.post-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.post-summary:hover {
+    background: #fafafa;
+}
+
+.post-summary-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.post-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #222222;
+    margin: 0 0 6px 0;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.post-meta {
+    font-size: 12px;
+    color: #999999;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.post-meta .dot {
+    color: #cccccc;
+}
+.post-meta .new-icon {
+    background: #e53935;
+    color: #ffffff;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+
+.comment-count {
+    background: #7c4dff;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+    flex-shrink: 0;
+    padding: 0 8px;
+}
+
+/* Expanded Post */
+.post-expanded {
+    display: none;
+    background: #fafafa;
+    border-top: 1px solid #eeeeee;
+}
+.toggle-checkbox:checked ~ .post-expanded {
+    display: block;
+}
+
+.post-body {
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #333333;
+    background: #ffffff;
+}
+.post-body p {
+    margin: 0;
+}
+
+/* Comments */
+.comments-section {
+    border-top: 1px solid #eeeeee;
+    background: #f9f9f9;
+}
+
+.comments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #555555;
+    border-bottom: 1px solid #eeeeee;
+}
+.comments-header div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.bingle {
+    cursor: pointer;
+    font-size: 16px;
+    color: #999999;
+}
+
+.comment-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.comment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+}
+.comment-item:last-child {
+    border-bottom: none;
+}
+
+.comment-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #999999;
+}
+.comment-meta strong {
+    color: #555555;
+    font-size: 12px;
+}
+.comment-meta .new-icon {
+    background: #e53935;
+    color: #ffffff;
+    font-size: 8px;
+    padding: 1px 3px;
+    border-radius: 2px;
+    font-weight: 700;
+}
+
+.comment-text {
+    margin: 0;
+    color: #444444;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.first-comment-badge {
+    background: #7c4dff;
+    color: #ffffff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.comment-item > span {
+    color: #cccccc;
+    cursor: pointer;
+    padding-left: 8px;
+    font-size: 16px;
+}
+
+/* Settings Panel */
+.cb-setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+.cb-setting-row label {
+    font-weight: 600;
+    font-size: 13px;
 }
