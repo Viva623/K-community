@@ -4,7 +4,6 @@
 const MODULE_NAME = 'community_board';
 const BOARD_START = '<~ Board Start ~>';
 const BOARD_END = '<~ Board End ~>';
-const POST_REGEX = /POST\[([^§]+)§([^§]+)§(\d+)§([^\]]*)\]/g;
 
 // ===== Default Settings =====
 const defaultSettings = Object.freeze({
@@ -162,10 +161,50 @@ function renderBoard(posts, settings) {
     </div>`;
 }
 
+// ===== Popup =====
+function showBoardPopup(posts, settings) {
+    const boardHtml = renderBoard(posts, settings);
+
+    const overlay = document.createElement('div');
+    overlay.classList.add('cb-popup-overlay');
+
+    const popup = document.createElement('div');
+    popup.classList.add('cb-popup');
+
+    const closeBtn = document.createElement('div');
+    closeBtn.classList.add('cb-popup-close');
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', () => overlay.remove());
+
+    popup.appendChild(closeBtn);
+
+    const content = document.createElement('div');
+    content.classList.add('cb-popup-content');
+    content.innerHTML = boardHtml;
+    popup.appendChild(content);
+
+    overlay.appendChild(popup);
+
+    // 오버레이 클릭 시 닫기 (팝업 내부 클릭은 무시)
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+
+    // ESC 키로 닫기
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            overlay.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    document.body.appendChild(overlay);
+}
+
 // ===== Process a single message element =====
 function processMessageElement(messageElement) {
-    // Don't process twice
-    if (messageElement.querySelector('.community-board-wrapper')) return;
+    if (messageElement.querySelector('.cb-open-button')) return;
 
     const messageText = messageElement.querySelector('.mes_text');
     if (!messageText) return;
@@ -173,14 +212,13 @@ function processMessageElement(messageElement) {
     const rawHtml = messageText.innerHTML;
     if (!rawHtml.includes(BOARD_START)) return;
 
-    // Parse from text content
     const textContent = messageText.textContent || messageText.innerText || '';
     const parsed = parseBoard(textContent);
     if (!parsed || parsed.posts.length === 0) return;
 
     const settings = getSettings();
 
-    // Remove the raw board text from displayed HTML
+    // 원본 텍스트에서 게시판 부분 제거
     const startIdx = rawHtml.indexOf(BOARD_START);
     const endIdx = rawHtml.indexOf(BOARD_END);
     if (startIdx !== -1 && endIdx !== -1) {
@@ -189,12 +227,15 @@ function processMessageElement(messageElement) {
         messageText.innerHTML = before + after;
     }
 
-    // Render board UI
-    const boardHtml = renderBoard(parsed.posts, settings);
-    const boardWrapper = document.createElement('div');
-    boardWrapper.classList.add('community-board-wrapper');
-    boardWrapper.innerHTML = boardHtml;
-    messageText.appendChild(boardWrapper);
+    // 메시지 안에 미리보기 버튼 추가
+    const openButton = document.createElement('div');
+    openButton.classList.add('cb-open-button');
+    openButton.innerHTML = `<span class="cb-open-icon">📋</span> <span>${settings.boardName} (${parsed.posts.length}개의 게시글)</span>`;
+    openButton.addEventListener('click', () => {
+        showBoardPopup(parsed.posts, settings);
+    });
+
+    messageText.appendChild(openButton);
 }
 
 // ===== Process all existing messages =====
@@ -211,8 +252,6 @@ function injectPrompt() {
 
     if (settings.enabled) {
         const prompt = buildBoardPrompt(settings);
-        // setExtensionPrompt(name, prompt, position, depth)
-        // position 1 = IN_CHAT, depth 0 = at the very end
         context.setExtensionPrompt(MODULE_NAME, prompt, 1, 0);
         console.log('[Community Board] Prompt injected');
     } else {
@@ -284,27 +323,22 @@ function loadSettingsUI() {
         updateToggleButton(settings.enabled);
         saveDebounced();
     });
-
     $('#cb_board_name').on('input', function () {
         settings.boardName = String($(this).val());
         saveDebounced();
     });
-
     $('#cb_post_count').on('input', function () {
         settings.postCount = parseInt($(this).val(), 10) || 5;
         saveDebounced();
     });
-
     $('#cb_max_comments').on('input', function () {
         settings.maxComments = parseInt($(this).val(), 10) || 20;
         saveDebounced();
     });
-
     $('#cb_reader_desc').on('input', function () {
         settings.readerDescription = String($(this).val());
         saveDebounced();
     });
-
     $('#cb_community_desc').on('input', function () {
         settings.communityDescription = String($(this).val());
         saveDebounced();
@@ -344,11 +378,9 @@ function updateToggleButton(enabled) {
 (async function () {
     const context = SillyTavern.getContext();
 
-    // Load settings UI and toggle button
     loadSettingsUI();
     addToggleButton();
 
-    // When AI message is rendered -> parse and display board
     context.eventSource.on(context.eventTypes.CHARACTER_MESSAGE_RENDERED, (messageIndex) => {
         const messageElement = document.querySelector(`.mes[mesid="${messageIndex}"]`);
         if (messageElement) {
@@ -356,22 +388,18 @@ function updateToggleButton(enabled) {
         }
     });
 
-    // When chat changes -> re-process all messages
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
         setTimeout(processAllMessages, 500);
     });
 
-    // Before generation -> inject prompt
     context.eventSource.on(context.eventTypes.GENERATION_STARTED, () => {
         injectPrompt();
     });
 
-    // After generation -> clear prompt injection
     context.eventSource.on(context.eventTypes.GENERATION_ENDED, () => {
         context.setExtensionPrompt(MODULE_NAME, '', 1, 0);
     });
 
-    // Process any existing messages on load
     setTimeout(processAllMessages, 1000);
 
     console.log('[Community Board] Extension loaded!');
