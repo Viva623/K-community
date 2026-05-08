@@ -114,31 +114,33 @@ function parseBoard(text) {
 }
 
 // ===== Generate stable meta for a post =====
-function assignPostMeta(post, postIndex, totalPosts) {
+function assignPostMeta(post) {
     if (!post._meta) {
-        // Use the timestamp when the post was created
         const baseTime = post._timestamp || Date.now();
-        // Spread posts across a time range (each post 1~5 min apart, newest first)
-        const offsetMinutes = (totalPosts - 1 - postIndex) * (Math.floor(Math.random() * 4) + 1);
-        const postDate = new Date(baseTime - offsetMinutes * 60000);
-
+        const postDate = new Date(baseTime);
         const hours = String(postDate.getHours()).padStart(2, '0');
         const minutes = String(postDate.getMinutes()).padStart(2, '0');
 
         post._meta = {
             views: Math.floor(Math.random() * 300) + 1,
             timeStr: `${hours}:${minutes}`,
-            id: baseTime + Math.floor(Math.random() * 10000),
         };
     }
     return post._meta;
 }
 
+// ===== Generate comment time string =====
+function makeCommentTime(postTimestamp, commentIndex) {
+    const offsetMs = (commentIndex + 1) * (Math.floor(Math.random() * 3) + 1) * 60000;
+    const commentDate = new Date(postTimestamp + offsetMs);
+    const h = String(commentDate.getHours()).padStart(2, '0');
+    const m = String(commentDate.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+}
+
 // ===== Show Board Popup =====
 function showBoardPopup(settings) {
     document.querySelector('.cb-popup-overlay')?.remove();
-
-    const randomMinute = () => String(Math.floor(Math.random() * 60)).padStart(2, '0');
 
     const overlay = document.createElement('div');
     overlay.classList.add('cb-popup-overlay');
@@ -180,15 +182,15 @@ function showBoardPopup(settings) {
         const totalPages = Math.max(1, Math.ceil(allPosts.length / POSTS_PER_PAGE));
         if (currentPage > totalPages) currentPage = totalPages;
 
-        // Newest first
-        const reversed = [...allPosts].reverse();
+        // Newest first (by timestamp)
+        const sorted = [...allPosts].sort((a, b) => (b._timestamp || 0) - (a._timestamp || 0));
         const startIdx = (currentPage - 1) * POSTS_PER_PAGE;
-        const pagePosts = reversed.slice(startIdx, startIdx + POSTS_PER_PAGE);
+        const pagePosts = sorted.slice(startIdx, startIdx + POSTS_PER_PAGE);
 
         let listHtml = '';
         pagePosts.forEach((post, idx) => {
-            const meta = assignPostMeta(post, startIdx + idx, allPosts.length);
-            const globalIdx = allPosts.length - 1 - (startIdx + idx);
+            const meta = assignPostMeta(post);
+            const globalIdx = allPosts.indexOf(post);
             listHtml += `
                 <div class="post-item" data-post-index="${globalIdx}">
                     <div class="post-summary">
@@ -252,8 +254,8 @@ function showBoardPopup(settings) {
         // Pagination click
         contentArea.querySelectorAll('[data-page]').forEach(el => {
             el.addEventListener('click', () => {
-                const page = parseInt(el.dataset.page, 10);
-                showListView(page);
+                const p = parseInt(el.dataset.page, 10);
+                showListView(p);
                 contentArea.scrollTop = 0;
             });
         });
@@ -263,18 +265,37 @@ function showBoardPopup(settings) {
     function showDetailView(idx) {
         const post = allPosts[idx];
         if (!post) return;
-        const meta = assignPostMeta(post, idx, allPosts.length);
+        const meta = assignPostMeta(post);
+        const postTime = post._timestamp || Date.now();
+
+        // Pre-generate stable comment times
+        let commentTimeIndex = 0;
+        const commentTimes = [];
+        post.comments.forEach((comment) => {
+            commentTimes.push(makeCommentTime(postTime, commentTimeIndex));
+            commentTimeIndex++;
+            if (comment.replies) {
+                for (let r = 0; r < comment.replies.length; r++) {
+                    commentTimes.push(makeCommentTime(postTime, commentTimeIndex));
+                    commentTimeIndex++;
+                }
+            }
+        });
 
         let commentsHtml = '';
+        let timeIdx = 0;
         post.comments.forEach((comment, cIdx) => {
             const isFirst = cIdx === 0;
+            const cTime = commentTimes[timeIdx] || meta.timeStr;
+            timeIdx++;
+
             commentsHtml += `
                 <li class="comment-item">
                     <div class="comment-main">
                         <div class="comment-meta">
                             <strong>여시</strong>
                             <span class="new-icon">N</span>
-                            <span>${meta.timeStr}</span>
+                            <span>${cTime}</span>
                         </div>
                         <p class="comment-text">
                             ${isFirst ? '<span class="first-comment-badge">첫댓글</span> ' : ''}${comment.text}
@@ -285,6 +306,9 @@ function showBoardPopup(settings) {
 
             if (comment.replies && comment.replies.length > 0) {
                 for (const reply of comment.replies) {
+                    const rTime = commentTimes[timeIdx] || meta.timeStr;
+                    timeIdx++;
+
                     commentsHtml += `
                         <li class="comment-item comment-reply">
                             <div class="reply-arrow">┗</div>
@@ -292,7 +316,7 @@ function showBoardPopup(settings) {
                                 <div class="comment-meta">
                                     <strong>여시</strong>
                                     <span class="new-icon">N</span>
-                                    <span>00:${randomMinute()}</span>
+                                    <span>${rTime}</span>
                                 </div>
                                 <p class="comment-text">${reply}</p>
                             </div>
@@ -367,23 +391,18 @@ function processMessageElement(messageElement) {
 
     const mesId = messageElement.getAttribute('mesid');
 
-    // Add posts to accumulated list (avoid duplicates by mesId)
+    // Add posts with timestamps
     if (!allPosts.some(p => p._mesId === mesId)) {
-    const now = Date.now();
-
-    for (let i = 0; i < parsed.posts.length; i++) {
-        const post = parsed.posts[i];
-        post._mesId = mesId;
-
-        post._timestamp =
-            now -
-            (parsed.posts.length - 1 - i) *
-            (Math.floor(Math.random() * 4) + 1) *
-            60000;
-
-        allPosts.push(post);
+        const now = Date.now();
+        for (let i = 0; i < parsed.posts.length; i++) {
+            const post = parsed.posts[i];
+            post._mesId = mesId;
+            // Each post 1~5 min apart, oldest first
+            post._timestamp = now - (parsed.posts.length - 1 - i) * (Math.floor(Math.random() * 4) + 1) * 60000;
+            allPosts.push(post);
+        }
+        console.log(`[Community Board] ${parsed.posts.length} posts added from message #${mesId} (total: ${allPosts.length})`);
     }
-}
 
     // Remove the raw board text from displayed message
     const startIdx = rawHtml.indexOf(BOARD_START);
@@ -437,7 +456,7 @@ function injectPrompt() {
 
     if (settings.enabled) {
         const prompt = buildBoardPrompt(settings);
-        context.setExtensionPrompt(MODULE_NAME, prompt);
+        context.setExtensionPrompt(MODULE_NAME, prompt, 1, 0);
         console.log('[Community Board] Prompt injected');
     } else {
         context.setExtensionPrompt(MODULE_NAME, '', 1, 0);
