@@ -5,8 +5,9 @@ const MODULE_NAME = 'community_board';
 const BOARD_START = '<~ Board Start ~>';
 const BOARD_END = '<~ Board End ~>';
 
-// ===== Board Data Store =====
+// ===== Board Data Store (global) =====
 const boardDataStore = {};
+globalThis.boardDataStore = boardDataStore;
 
 // ===== Default Settings =====
 const defaultSettings = Object.freeze({
@@ -31,6 +32,7 @@ function getSettings() {
     }
     return context.extensionSettings[MODULE_NAME];
 }
+globalThis.cbGetSettings = getSettings;
 
 // ===== Prompt Builder =====
 function buildBoardPrompt(settings) {
@@ -113,10 +115,9 @@ function parseBoard(text) {
 function showBoardPopup(posts, settings) {
     document.querySelector('.cb-popup-overlay')?.remove();
 
-    const randomViews = () => Math.floor(Math.random() * 300) + 1;
     const randomMinute = () => String(Math.floor(Math.random() * 60)).padStart(2, '0');
+    const randomViews = () => Math.floor(Math.random() * 300) + 1;
 
-    // Pre-generate stable random values for each post
     const postMeta = posts.map(() => ({
         views: randomViews(),
         minute: randomMinute(),
@@ -154,7 +155,7 @@ function showBoardPopup(posts, settings) {
     };
     document.addEventListener('keydown', escHandler);
 
-    // ===== Render List View =====
+    // ===== List View =====
     function showListView() {
         let listHtml = '';
         posts.forEach((post, idx) => {
@@ -196,7 +197,6 @@ function showBoardPopup(posts, settings) {
                 </main>
             </div>`;
 
-        // Attach click handlers to each post
         contentArea.querySelectorAll('.post-item[data-post-index]').forEach(el => {
             el.style.cursor = 'pointer';
             el.addEventListener('click', () => {
@@ -206,7 +206,7 @@ function showBoardPopup(posts, settings) {
         });
     }
 
-    // ===== Render Detail View =====
+    // ===== Detail View =====
     function showDetailView(idx) {
         const post = posts[idx];
 
@@ -285,19 +285,16 @@ function showBoardPopup(posts, settings) {
                 </div>
             </div>`;
 
-        // Back button
-        contentArea.querySelector('.cb-back-btn').style.cursor = 'pointer';
         contentArea.querySelector('.cb-back-btn').addEventListener('click', () => {
             showListView();
         });
 
-        // Scroll to top
         contentArea.scrollTop = 0;
     }
 
-    // Start with list view
     showListView();
 }
+globalThis.showBoardPopup = showBoardPopup;
 
 // ===== Get latest board data =====
 function getLatestBoard() {
@@ -478,9 +475,15 @@ function addMainButton() {
     button.id = 'community-board-btn';
     button.title = '게시판 열기';
     button.textContent = '📋';
+    button.style.zIndex = '9999';
+    button.style.position = 'relative';
 
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('[Community Board] Button clicked!');
         const latest = getLatestBoard();
+        console.log('[Community Board] Latest board:', latest);
         if (latest) {
             showBoardPopup(latest, getSettings());
         } else {
@@ -491,6 +494,9 @@ function addMainButton() {
     const sendForm = document.getElementById('send_form');
     if (sendForm) {
         sendForm.insertBefore(button, sendForm.firstChild);
+        console.log('[Community Board] Button added to send_form');
+    } else {
+        console.warn('[Community Board] send_form not found!');
     }
 }
 
