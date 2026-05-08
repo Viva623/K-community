@@ -56,10 +56,19 @@
     position: relative !important;
     width: 90% !important;
     max-width: 480px !important;
-    max-height: 85vh !important;
+
+    /* 수정 */
+    height: auto !important;
+    max-height: 90dvh !important;
+
+    margin: 5vh auto !important;
+
     border-radius: 16px !important;
     overflow: hidden !important;
-    animation: cb-slide-up 0.3s ease;
+
+    /* 수정 */
+    animation: none !important;
+
     box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
 }
 
@@ -92,7 +101,7 @@
 
 .cb-popup-content {
     overflow-y: auto !important;
-    max-height: 85vh !important;
+    max-height: 90dvh !important;
 }
 
 /* ===== Board Container ===== */
