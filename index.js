@@ -166,14 +166,13 @@ function showBoardPopup(settings) {
 
     document.body.appendChild(overlay);
 
+    // 디버그 - 높이 확인
     const vh = window.innerHeight;
-    popup.style.height = Math.floor(vh * 0.85) + 'px';
-    popup.style.minHeight = Math.floor(vh * 0.85) + 'px';
-    const contentEl = popup.querySelector('.cb-popup-content');
-    if (contentEl) {
-        contentEl.style.height = Math.floor(vh * 0.75) + 'px';
-        contentEl.style.minHeight = Math.floor(vh * 0.75) + 'px';
-    }
+    const debugDiv = document.createElement('div');
+    debugDiv.style.cssText = 'position:fixed;top:0;left:0;background:red;color:white;font-size:20px;z-index:9999999;padding:10px;';
+    debugDiv.textContent = 'popup:' + popup.offsetHeight + ' content:' + (popup.querySelector('.cb-popup-content')?.offsetHeight || 0) + ' window:' + vh;
+    document.body.appendChild(debugDiv);
+    setTimeout(() => debugDiv.remove(), 5000);
     
     // Force scroll to popup on mobile
     setTimeout(() => {
