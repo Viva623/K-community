@@ -41,9 +41,11 @@
     bottom: 0 !important;
     background: rgba(0,0,0,0.6) !important;
     z-index: 99999 !important;
+    overflow-y: auto !important;
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-start !important;   /* center → flex-start 로 변경! */
     justify-content: center !important;
+    padding: 3vh 0 !important;            /* 위아래 여백 추가 */
     animation: cb-fade-in 0.2s ease;
 }
 
@@ -56,20 +58,13 @@
     position: relative !important;
     width: 90% !important;
     max-width: 480px !important;
-
-    /* 수정 */
-    height: auto !important;
     max-height: 90dvh !important;
-
-    margin: 5vh auto !important;
-
+    margin: 0 auto !important;            /* 5vh auto → 0 auto 로 변경! */
     border-radius: 16px !important;
     overflow: hidden !important;
-
-    /* 수정 */
-    animation: none !important;
-
+    animation: cb-slide-up 0.3s ease !important;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+    flex-shrink: 0 !important;            /* flex 안에서 찌그러지지 않게 */
 }
 
 @keyframes cb-slide-up {
