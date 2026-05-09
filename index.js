@@ -585,19 +585,20 @@ function loadSettingsUI() {
 
 // ===== Main Button =====
 function addMainButton() {
-    document.getElementById('community-board-btn')?.remove();
-    document.getElementById('cb-floating-wrapper')?.remove();
+    const sendForm = document.getElementById('send_form');
+    if (!sendForm) return;
 
+    // 버튼들을 가로로 묶는 wrapper
     const wrapper = document.createElement('div');
-    wrapper.id = 'cb-floating-wrapper';
-    wrapper.style.cssText = 'position:sticky;top:0;z-index:9999;display:flex;flex-direction:row;gap:6px;padding:6px 10px;';
+    wrapper.id = 'cb-btn-wrapper';
+    wrapper.style.cssText = 'display:flex;flex-direction:row;gap:4px;align-self:flex-start;';
 
     const button = document.createElement('button');
     button.id = 'community-board-btn';
     button.title = '게시판 열기';
     button.textContent = '📋';
     button.type = 'button';
-    button.style.cssText = 'cursor:pointer;font-size:1.3em;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,0.1);border:none;color:#fff;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;position:relative;';
+    button.style.cssText = 'z-index:9999;position:relative;cursor:pointer;font-size:1.2em;padding:3px 5px;border-radius:5px;background:none;border:none;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;';
 
     button.onclick = function(e) {
         e.preventDefault();
@@ -613,12 +614,8 @@ function addMainButton() {
     };
 
     wrapper.appendChild(button);
-
-    const chat = document.getElementById('chat');
-    if (chat && chat.parentElement) {
-        chat.parentElement.insertBefore(wrapper, chat);
-    }
-    console.log('[Community Board] Floating button added above chat');
+    sendForm.insertBefore(wrapper, sendForm.firstChild);
+    console.log('[Community Board] Button added to send_form');
 }
 
 // ===== Main Init =====
