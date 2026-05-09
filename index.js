@@ -163,14 +163,12 @@ function showBoardPopup(settings) {
     popup.appendChild(contentArea);
     overlay.appendChild(popup);
 
-    // 오버레이 바깥 클릭으로 닫기
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) overlay.remove();
     });
 
     document.body.appendChild(overlay);
 
-    // ESC로 닫기
     const escHandler = (e) => {
         if (e.key === 'Escape') {
             overlay.remove();
@@ -198,7 +196,6 @@ function showBoardPopup(settings) {
         });
     }
 
-    // closeBtn 터치 대응
     addTapHandler(closeBtn, () => overlay.remove());
 
     let currentPage = 1;
@@ -268,7 +265,6 @@ function showBoardPopup(settings) {
                 ${totalPages > 1 ? paginationHtml : ''}
             </div>`;
 
-        // 게시글 클릭
         contentArea.querySelectorAll('.post-item[data-post-index]').forEach(el => {
             addTapHandler(el, () => {
                 const idx = parseInt(el.dataset.postIndex, 10);
@@ -276,7 +272,6 @@ function showBoardPopup(settings) {
             });
         });
 
-        // 페이지네이션 클릭
         contentArea.querySelectorAll('[data-page]').forEach(el => {
             addTapHandler(el, () => {
                 const p = parseInt(el.dataset.page, 10);
@@ -388,7 +383,6 @@ function showBoardPopup(settings) {
                 </div>
             </div>`;
 
-        // 뒤로가기 버튼
         const backBtn = contentArea.querySelector('.cb-back-btn');
         addTapHandler(backBtn, () => showListView(currentPage));
 
@@ -401,42 +395,45 @@ globalThis.showBoardPopup = showBoardPopup;
 
 // ===== Process a single message element =====
 function processMessageElement(messageElement) {
-    if (messageElement.dataset.cbProcessed) return;
+    const mesId = messageElement.getAttribute('mesid');
+    if (!mesId) return;
 
-    const messageText = messageElement.querySelector('.mes_text');
-    if (!messageText) return;
+    const context = SillyTavern.getContext();
+    const chatMessage = context.chat[parseInt(mesId, 10)];
+    if (!chatMessage || chatMessage.is_user) return;
 
-    const rawHtml = messageText.innerHTML;
-    if (!rawHtml.includes('Board Start') && !rawHtml.includes('Board End')) return;
+    const rawMes = chatMessage.mes;
+    if (!rawMes || !rawMes.includes(BOARD_START)) return;
 
-    const textContent = messageText.textContent || messageText.innerText || '';
-    const parsed = parseBoard(textContent);
+    const parsed = parseBoard(rawMes);
     if (!parsed || parsed.posts.length === 0) return;
 
-    const mesId = messageElement.getAttribute('mesid');
-
-    if (!allPosts.some(p => p._mesId === mesId)) {
-        const now = Date.now();
-        for (let i = 0; i < parsed.posts.length; i++) {
-            const post = parsed.posts[i];
-            post._mesId = mesId;
-            post._timestamp = now - (parsed.posts.length - 1 - i) * (Math.floor(Math.random() * 4) + 1) * 60000;
-            allPosts.push(post);
+    // 리롤 대응: 같은 mesId의 기존 게시글 삭제
+    for (let i = allPosts.length - 1; i >= 0; i--) {
+        if (allPosts[i]._mesId === mesId) {
+            allPosts.splice(i, 1);
         }
-        console.log(`[Community Board] ${parsed.posts.length} posts added from message #${mesId} (total: ${allPosts.length})`);
     }
 
-    const startIdx = rawHtml.indexOf(BOARD_START);
-    const endIdx = rawHtml.indexOf(BOARD_END);
-    if (startIdx !== -1 && endIdx !== -1) {
-        const before = rawHtml.substring(0, startIdx);
-        const after = rawHtml.substring(endIdx + BOARD_END.length);
-        messageText.innerHTML = before + after;
-    } else {
-        messageText.innerHTML = rawHtml.replace(
-            /&lt;~ Board Start ~&gt;[\s\S]*?&lt;~ Board End ~&gt;/g,
-            ''
-        );
+    // 새 게시글 추가
+    const now = Date.now();
+    for (let i = 0; i < parsed.posts.length; i++) {
+        const post = parsed.posts[i];
+        post._mesId = mesId;
+        post._timestamp = now - (parsed.posts.length - 1 - i) * (Math.floor(Math.random() * 4) + 1) * 60000;
+        allPosts.push(post);
+    }
+    console.log(`[Community Board] ${parsed.posts.length} posts added from message #${mesId} (total: ${allPosts.length})`);
+
+    // 화면에서 보드 텍스트 제거
+    const messageText = messageElement.querySelector('.mes_text');
+    if (messageText) {
+        const rawHtml = messageText.innerHTML;
+        const cleaned = rawHtml
+            .replace(/<~\s*Board Start\s*~>[\s\S]*?<~\s*Board End\s*~>/g, '')
+            .replace(/&lt;~\s*Board Start\s*~&gt;[\s\S]*?&lt;~\s*Board End\s*~&gt;/g, '')
+            .replace(/~\s*Board Start\s*~[\s\S]*?~\s*Board End\s*~/g, '');
+        messageText.innerHTML = cleaned;
     }
 
     messageElement.dataset.cbProcessed = 'true';
