@@ -427,11 +427,12 @@ function processMessageElement(messageElement) {
     }
 
     // 새 게시글 추가
-    const now = Date.now();
+    const mesIdNum = parseInt(mesId, 10);
+    const baseTime = Date.now() - (200 - mesIdNum) * 10 * 60000;
     for (let i = 0; i < parsed.posts.length; i++) {
         const post = parsed.posts[i];
         post._mesId = mesId;
-        post._timestamp = now - (parsed.posts.length - 1 - i) * (Math.floor(Math.random() * 4) + 1) * 60000;
+        post._timestamp = baseTime + i * (Math.floor(Math.random() * 3) + 1) * 60000;
         allPosts.push(post);
     }
     console.log(`[Community Board] ${parsed.posts.length} posts added from message #${mesId} (total: ${allPosts.length})`);
