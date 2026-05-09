@@ -588,9 +588,12 @@ function addMainButton() {
     const sendForm = document.getElementById('send_form');
     if (!sendForm) return;
 
+    // nonQRFormItems 안에 wrapper를 만들어 넣기
+    const target = document.getElementById('nonQRFormItems') || sendForm;
+
     const wrapper = document.createElement('div');
     wrapper.id = 'cb-btn-wrapper';
-    wrapper.style.cssText = 'display:flex;flex-direction:row;gap:4px;align-self:flex-start;';
+    wrapper.style.cssText = 'display:flex;flex-direction:row;gap:4px;align-items:center;flex-shrink:0;';
 
     const button = document.createElement('button');
     button.id = 'community-board-btn';
@@ -613,8 +616,13 @@ function addMainButton() {
     };
 
     wrapper.appendChild(button);
-    sendForm.insertBefore(wrapper, sendForm.firstChild);
-    console.log('[Community Board] Button added to send_form');
+
+    if (target.firstChild) {
+        target.insertBefore(wrapper, target.firstChild);
+    } else {
+        target.appendChild(wrapper);
+    }
+    console.log('[Community Board] Button added to', target.id);
 }
 
 // ===== Main Init =====
