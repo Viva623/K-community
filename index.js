@@ -70,9 +70,18 @@ ${BOARD_END}`;
 
 // ===== Board Parser =====
 function parseBoard(text) {
-    const startIdx = text.indexOf(BOARD_START);
-    const endIdx = text.indexOf(BOARD_END);
-    if (startIdx === -1 || endIdx === -1) return null;
+    // 마지막 Board Start를 찾아서 파싱 (think 블록 안의 플래닝 무시)
+    let startIdx = -1;
+    let searchFrom = 0;
+    while (true) {
+        const found = text.indexOf(BOARD_START, searchFrom);
+        if (found === -1) break;
+        startIdx = found;
+        searchFrom = found + 1;
+    }
+
+    const endIdx = text.lastIndexOf(BOARD_END);
+    if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) return null;
 
     const boardText = text.substring(startIdx, endIdx + BOARD_END.length);
     const posts = [];
