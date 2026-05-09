@@ -8,6 +8,7 @@ const BOARD_END = '<~ Board End ~>';
 // ===== Accumulated posts (global) =====
 const allPosts = [];
 globalThis.cbAllPosts = allPosts;
+globalThis.allPosts = allPosts;
 
 const POSTS_PER_PAGE = 10;
 
@@ -112,6 +113,7 @@ function parseBoard(text) {
 
     return posts.length > 0 ? { posts, rawBoardText: boardText } : null;
 }
+globalThis.parseBoard = parseBoard;
 
 // ===== Generate stable meta for a post =====
 function assignPostMeta(post) {
@@ -608,22 +610,21 @@ function addMainButton() {
     addMainButton();
 
     context.eventSource.on(context.eventTypes.CHARACTER_MESSAGE_RENDERED, (messageIndex) => {
-    // 약간 딜레이를 줘서 chat 데이터가 확실히 들어온 후 처리
-    setTimeout(() => {
-        const messageElement = document.querySelector(`.mes[mesid="${messageIndex}"]`);
-        if (messageElement) {
-            processMessageElement(messageElement);
-            console.log('[Community Board] Processed message #' + messageIndex);
-        } else {
-            console.log('[Community Board] Message element not found for #' + messageIndex);
-        }
-    }, 300);
-});
+        setTimeout(() => {
+            const messageElement = document.querySelector(`.mes[mesid="${messageIndex}"]`);
+            if (messageElement) {
+                processMessageElement(messageElement);
+                console.log('[Community Board] Processed message #' + messageIndex);
+            } else {
+                console.log('[Community Board] Message element not found for #' + messageIndex);
+            }
+        }, 300);
+    });
 
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
         allPosts.length = 0;
         updateButtonBadge();
-        setTimeout(processAllMessages, 2000);
+        setTimeout(processAllMessages, 500);
     });
 
     context.eventSource.on(context.eventTypes.GENERATION_STARTED, () => {
@@ -635,7 +636,11 @@ function addMainButton() {
         ctx.setExtensionPrompt(MODULE_NAME, '', 1, 0);
     });
 
-    setTimeout(processAllMessages, 1000);
+    setTimeout(processAllMessages, 2000);
+
+    // 글로벌 노출 (디버그용)
+    globalThis.processAllMessages = processAllMessages;
+    globalThis.processMessageElement = processMessageElement;
 
     console.log('[Community Board] Extension loaded!');
 })();
