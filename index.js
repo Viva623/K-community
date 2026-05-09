@@ -608,16 +608,22 @@ function addMainButton() {
     addMainButton();
 
     context.eventSource.on(context.eventTypes.CHARACTER_MESSAGE_RENDERED, (messageIndex) => {
+    // 약간 딜레이를 줘서 chat 데이터가 확실히 들어온 후 처리
+    setTimeout(() => {
         const messageElement = document.querySelector(`.mes[mesid="${messageIndex}"]`);
         if (messageElement) {
             processMessageElement(messageElement);
+            console.log('[Community Board] Processed message #' + messageIndex);
+        } else {
+            console.log('[Community Board] Message element not found for #' + messageIndex);
         }
-    });
+    }, 300);
+});
 
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
         allPosts.length = 0;
         updateButtonBadge();
-        setTimeout(processAllMessages, 500);
+        setTimeout(processAllMessages, 2000);
     });
 
     context.eventSource.on(context.eventTypes.GENERATION_STARTED, () => {
