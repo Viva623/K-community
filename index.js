@@ -585,22 +585,19 @@ function loadSettingsUI() {
 
 // ===== Main Button =====
 function addMainButton() {
-    const sendForm = document.getElementById('send_form');
-    if (!sendForm) return;
-
-    // nonQRFormItems 안에 wrapper를 만들어 넣기
-    const target = document.getElementById('nonQRFormItems') || sendForm;
+    document.getElementById('community-board-btn')?.remove();
+    document.getElementById('cb-floating-wrapper')?.remove();
 
     const wrapper = document.createElement('div');
-    wrapper.id = 'cb-btn-wrapper';
-    wrapper.style.cssText = 'display:flex;flex-direction:row;gap:4px;align-items:center;flex-shrink:0;';
+    wrapper.id = 'cb-floating-wrapper';
+    wrapper.style.cssText = 'position:sticky;top:0;z-index:9999;display:flex;flex-direction:row;gap:6px;padding:6px 10px;';
 
     const button = document.createElement('button');
     button.id = 'community-board-btn';
     button.title = '게시판 열기';
     button.textContent = '📋';
     button.type = 'button';
-    button.style.cssText = 'z-index:9999;position:relative;cursor:pointer;font-size:1.2em;padding:3px 5px;border-radius:5px;background:none;border:none;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;';
+    button.style.cssText = 'cursor:pointer;font-size:1.3em;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,0.1);border:none;color:#fff;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;position:relative;';
 
     button.onclick = function(e) {
         e.preventDefault();
@@ -617,12 +614,11 @@ function addMainButton() {
 
     wrapper.appendChild(button);
 
-    if (target.firstChild) {
-        target.insertBefore(wrapper, target.firstChild);
-    } else {
-        target.appendChild(wrapper);
+    const chat = document.getElementById('chat');
+    if (chat && chat.parentElement) {
+        chat.parentElement.insertBefore(wrapper, chat);
     }
-    console.log('[Community Board] Button added to', target.id);
+    console.log('[Community Board] Floating button added above chat');
 }
 
 // ===== Main Init =====
