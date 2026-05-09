@@ -585,12 +585,19 @@ function loadSettingsUI() {
 
 // ===== Main Button =====
 function addMainButton() {
+    const sendForm = document.getElementById('send_form');
+    if (!sendForm) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'cb-btn-wrapper';
+    wrapper.style.cssText = 'display:flex;flex-direction:row;gap:4px;align-self:flex-start;';
+
     const button = document.createElement('button');
     button.id = 'community-board-btn';
     button.title = '게시판 열기';
     button.textContent = '📋';
     button.type = 'button';
-    button.style.cssText = 'z-index:9999;position:relative;cursor:pointer;font-size:1.2em;padding:3px 5px;border-radius:5px;background:none;border:none;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;align-self:flex-start;';
+    button.style.cssText = 'z-index:9999;position:relative;cursor:pointer;font-size:1.2em;padding:3px 5px;border-radius:5px;background:none;border:none;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;';
 
     button.onclick = function(e) {
         e.preventDefault();
@@ -605,11 +612,9 @@ function addMainButton() {
         return false;
     };
 
-    const sendForm = document.getElementById('send_form');
-    if (sendForm) {
-        sendForm.insertBefore(button, sendForm.firstChild);
-        console.log('[Community Board] Button added to send_form');
-    }
+    wrapper.appendChild(button);
+    sendForm.insertBefore(wrapper, sendForm.firstChild);
+    console.log('[Community Board] Button added to send_form');
 }
 
 // ===== Main Init =====
