@@ -590,7 +590,7 @@ function addMainButton() {
     button.title = '게시판 열기';
     button.textContent = '📋';
     button.type = 'button';
-    button.style.cssText = 'z-index:9999;position:relative;cursor:pointer;font-size:1.2em;padding:3px 5px;border-radius:5px;background:none;border:none;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;';
+    button.style.cssText = 'z-index:9999;position:relative;cursor:pointer;font-size:1.2em;padding:3px 5px;border-radius:5px;background:none;border:none;-webkit-tap-highlight-color:rgba(0,0,0,0.1);touch-action:manipulation;align-self:flex-start;';
 
     button.onclick = function(e) {
         e.preventDefault();
